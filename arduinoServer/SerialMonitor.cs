@@ -60,6 +60,7 @@ namespace arduinoServer
         public bool SendData(string ss)
         {
             bool ret = false;
+            logIt($"SendData ++ {ss}");
             if (String.IsNullOrEmpty(ss)) return ret;
             try {
                 
@@ -70,6 +71,7 @@ namespace arduinoServer
             {
 
             }
+            logIt($"SendData -- {ret}");
             return ret;
         }
 

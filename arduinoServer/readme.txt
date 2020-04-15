@@ -14,8 +14,15 @@ http://localhost:3420/leds
 this set one strip. Only set One strip. and turn off the other strip at the same time.
 colors MAX cout is 8. MIN is 1. The example is 3. r, g, b is RGB COLOR SYSTEM VALUE.
 
-{"status":"status",  "labels":[["label":3,  "color":[r,g,b]],["label":4,  "color":[r,g,b]]]}
+example:
+{"status":"strip",  "label":1,  "colors":[[128,0,128],[0,255,128]]}
+
+{"status":"strip",  "label":1,  "colors":[[128,0,128],[0,255,128]]}
+{"status":"status",  "labels":[{"label":3,  "color":[r,g,b]},{"label":4,  "color":[r,g,b]}]}
 status allow every Leds turn on. so if you want to turn off the Status LED. set color is  [0,0,0] 
 status only change the label field identy. and the others will keep old status.
+
+example:
+{"status":"status",  "labels":[{"label":3,  "color":[255,128,0]},{"label":4,  "color":[0,128,255]}]}
 
 
