@@ -8,6 +8,18 @@ return all label button status
 http://localhost:3420/getkey?id=XXX
 return some label button status, include Label xxx
 
+
+http://localhost:3420/callback?port=XXXX
+setting callback , xxxx TCP Server Listen Port.
+
+http://localhost:3420/rmcallback?port=XXXX
+remove callback , xxxx TCP Server Listen Port.
+
+TCP Server will receive Key Clicked.
+'release:{label}\r\n'    server will receive key squance.
+
+
+
 POST
 http://localhost:3420/leds
 {"status":"strip",  "label":3,  "colors":[[r,g,b],[r,g,b],[r,g,b]]}

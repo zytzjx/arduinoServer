@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,7 +34,78 @@ namespace arduinoServer
         private int MAX_Groupt = 0;
         RGB[] status_leds;
 
+        private Dictionary<int, TcpClient> callbacklist = new Dictionary<int, TcpClient>();
+
         private int oldStripSelect = 0;
+
+        public void SendDatatoCallBack(String message)
+        {
+            if (!String.IsNullOrEmpty(message))
+            {
+                Byte[] data = System.Text.Encoding.ASCII.GetBytes(message+ Environment.NewLine);
+                lock (callbacklist) {
+                    foreach (var tcp in callbacklist)
+                    {
+                        try
+                        {
+                            tcp.Value.GetStream().Write(data, 0, data.Length);
+                        }
+                        catch(Exception e)
+                        {
+                            Program.logIt(e.ToString());
+                        }
+                    }
+                }
+            }
+        }
+
+        public Boolean RemoveCallBackList(int Port)
+        {
+            Boolean bret = true;
+            if (callbacklist.ContainsKey(Port))
+            {
+                lock (callbacklist)
+                {
+                    TcpClient tcp = callbacklist[Port];
+                    callbacklist.Remove(Port);
+                    bret = true;
+                    try
+                    {
+                        tcp.Close();
+                    }
+                    catch (Exception e)
+                    {
+                        Program.logIt(e.ToString());
+                    }
+
+                }
+            }
+            return bret;
+        }
+
+        public Boolean AddCallBackList(int Port)
+        {
+            Boolean bret = false;
+            lock (callbacklist)
+            {
+                if (!callbacklist.ContainsKey(Port))
+                {
+                    try
+                    {
+                        TcpClient tcp = new TcpClient("localhost", Port);
+                        callbacklist[Port] = tcp;
+                        bret = true;
+                    }
+                    catch (Exception e)
+                    {
+                        Program.logIt(e.ToString());
+                        bret = false;
+                    }
+
+                }
+            }
+            return bret;
+        }
 
         public void Init()
         {
@@ -60,6 +132,11 @@ namespace arduinoServer
                 status_leds[i] = new RGB(0, 0, 0);
             }
 
+            for(int i = 1; i <= arduinoServer.Properties.Settings.Default.MAX_SUPPORT_LABEL; i++)
+            {
+                buttonstatus[i] = false;
+            }
+
             Thread thread1 = new Thread(MonitorThread);
             thread1.Start();
         }
@@ -76,6 +153,10 @@ namespace arduinoServer
                 {
                     if (bstatus.ContainsKey(i))
                     {
+                        if ((buttonstatus[nLabelStart + plabels[i]] == true) && bstatus[i]==false)
+                        {
+                            SendDatatoCallBack($"release:{nLabelStart + plabels[i]}");
+                        }
                         buttonstatus[nLabelStart + plabels[i]] = bstatus[i];
                     }
                     else

@@ -135,8 +135,9 @@ namespace arduinoServer
                 try
                 {
                     string message = mSerialPort.ReadLine();
-                    if(String.Compare(smsg, message, true) != 0)
-                    {
+                    if (String.Compare(smsg, message, true) != 0)
+                    { 
+                        logIt($"{Index}: {message}");
                         smsg = message;
                         string[] status = message.Split(',');
                         if (status[0] == "I")

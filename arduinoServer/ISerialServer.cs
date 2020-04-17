@@ -21,6 +21,14 @@ namespace arduinoServer
         Stream GetKey(int id);
 
         [OperationContract]
+        [WebGet(UriTemplate = "/callback?port={port}")]
+        Stream callback(int port);
+
+        [OperationContract]
+        [WebGet(UriTemplate = "/rmcallback?port={port}")]
+        Stream removecallback(int port);
+
+        [OperationContract]
         [WebInvoke(UriTemplate = "/leds", RequestFormat = WebMessageFormat.Json,
             ResponseFormat = WebMessageFormat.Json, Method = "POST")]
         Stream Leds(Stream s);
@@ -36,6 +44,21 @@ namespace arduinoServer
 
             return ret;
         }
+
+        public Stream callback(int port)
+        {
+            bool b = Program.SerialManager.AddCallBackList(port);
+            Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes($"{{\"result\":{b}}}"));
+            return ret;
+        }
+
+        public Stream removecallback(int port)
+        {
+            bool b = Program.SerialManager.RemoveCallBackList(port);
+            Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes($"{{\"result\":{b}}}"));
+            return ret;
+        }
+
 
         public Stream GetKeys()
         {
