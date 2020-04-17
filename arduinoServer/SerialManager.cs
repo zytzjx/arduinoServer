@@ -134,12 +134,17 @@ namespace arduinoServer
             config = (Dictionary<String, Object>)serializer.DeserializeObject(s);
             //GroupCnt = (((Object[])config["portlabel"]).ToArray(typeof(int))).Length;
             GroupCnt = ((Object[])config["portlabel"]).Cast<int>().ToArray().Length;
-            String[] sComArray = {"COM3" };
+            Object[] sComArray = { "COM3" };
+            if (config.ContainsKey("serialports"))
+            {
+                sComArray = (Object[])config["serialports"];
+            }
 
-            for(int i = 0; i< sComArray.Length; i++){
+
+            for (int i = 0; i< sComArray.Length; i++){
                 SerialMonitor sertmp = new SerialMonitor();
                 sertmp.Index = i;
-                sertmp.Open(sComArray[i]);
+                sertmp.Open(sComArray[i].ToString());
                 serials.Add(sertmp);
                 waitHandles.Add(sertmp.mDataEvent);
             }

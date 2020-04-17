@@ -1,5 +1,5 @@
 ﻿{
 	"portlabel": [ 1, 2, 3, 4, 5, 6,7,8 ],
 	"stripindexs": [ 104, 89, 74, 60, 45, 30, 16, 1 ],
-	"serialport": [ "COM3" ]
+	"serialports": [ "COM3" ]
 }
