@@ -31,5 +31,14 @@ namespace arduinoServer.Properties {
                 return ((int)(this["MAX_SUPPORT_LABEL"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool CLIENTTRYCONN {
+            get {
+                return ((bool)(this["CLIENTTRYCONN"]));
+            }
+        }
     }
 }

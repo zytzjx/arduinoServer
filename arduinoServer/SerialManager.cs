@@ -44,11 +44,31 @@ namespace arduinoServer
             {
                 Byte[] data = System.Text.Encoding.ASCII.GetBytes(message+ Environment.NewLine);
                 lock (callbacklist) {
-                    foreach (var tcp in callbacklist)
+                    List<int> keys = new List<int>(callbacklist.Keys);
+                    foreach (int key in keys)
                     {
                         try
                         {
-                            tcp.Value.GetStream().Write(data, 0, data.Length);
+                            TcpClient tcpc = callbacklist[key];
+                            if (!tcpc.Connected)
+                            {
+                                tcpc.Close();
+                                if (arduinoServer.Properties.Settings.Default.CLIENTTRYCONN)
+                                {// this long time
+                                    TcpClient tcptemp = new TcpClient("localhost", key);
+                                    callbacklist[key] = tcptemp;
+                                    tcptemp.GetStream().Write(data, 0, data.Length);
+                                }
+                                else
+                                {
+                                    //this fast
+                                    callbacklist.Remove(key);
+                                }
+                            }
+                            else
+                            {
+                                tcpc.GetStream().Write(data, 0, data.Length);
+                            }
                         }
                         catch(Exception e)
                         {

@@ -18,7 +18,7 @@ remove callback , xxxx TCP Server Listen Port.
 TCP Server will receive Key Clicked.
 'release:{label}\r\n'    server will receive key squance.
 
-
+if TCP Server shutdown , retry connect or remove by settings config.
 
 POST
 http://localhost:3420/leds
