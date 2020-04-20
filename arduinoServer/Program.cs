@@ -98,6 +98,7 @@ namespace arduinoServer
                             _quit.Set();
                     }
                     host.Close();
+                    SerialManager.Uninit();
                 }
             }
 

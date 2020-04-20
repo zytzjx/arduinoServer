@@ -127,6 +127,7 @@ namespace arduinoServer
             return bret;
         }
 
+
         public void Init()
         {
             String s = System.IO.File.ReadAllText(System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Serialconfig.json"));
@@ -350,9 +351,13 @@ namespace arduinoServer
 
         public void Uninit()
         {
-            foreach(var ss in serials)
+            mStopEvent.Set();
+            lock (serials)
             {
-                ss.ExitThread();
+                foreach (var ss in serials)
+                {
+                    ss.ExitThread();
+                }
             }
         }
     }
