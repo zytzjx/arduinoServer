@@ -48,14 +48,19 @@ namespace arduinoServer
         public Stream callback(int port)
         {
             bool b = Program.SerialManager.AddCallBackList(port);
-            Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes($"{{\"result\":{b}}}"));
+            //string aa = b ? "true" : "false";
+            Dictionary<String, bool> aa = new Dictionary<string, bool>();
+            aa["result"] = b;
+            Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes(objectToString(aa)));
             return ret;
         }
 
         public Stream removecallback(int port)
         {
             bool b = Program.SerialManager.RemoveCallBackList(port);
-            Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes($"{{\"result\":{b}}}"));
+            Dictionary<String, bool> aa = new Dictionary<string, bool>();
+            aa["result"] = b;
+            Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes(objectToString(aa)));
             return ret;
         }
 
