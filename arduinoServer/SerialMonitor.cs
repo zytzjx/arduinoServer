@@ -86,7 +86,7 @@ namespace arduinoServer
             {
                 try
                 {
-                    mSerialPort = new SerialPort(serialPort, 19200);
+                    mSerialPort = new SerialPort(serialPort, 9600);
                     mSerialPort.Parity = Parity.None;
                     mSerialPort.StopBits = StopBits.One;
                     mSerialPort.DataBits = 8;
