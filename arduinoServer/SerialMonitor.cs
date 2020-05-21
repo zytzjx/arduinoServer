@@ -60,18 +60,22 @@ namespace arduinoServer
         public bool SendData(string ss)
         {
             bool ret = false;
-            logIt($"SendData ++ {ss}");
-            if (String.IsNullOrEmpty(ss)) return ret;
-            try {
-                
-                mSerialPort.Write(ss);
-                ret = true;
-            }
-            catch (Exception e)
+            lock (mSerialPort)
             {
+                logIt($"SendData ++ {ss}");
+                if (String.IsNullOrEmpty(ss)) return ret;
+                try
+                {
 
+                    mSerialPort.Write(ss);
+                    ret = true;
+                }
+                catch (Exception e)
+                {
+
+                }
+                logIt($"SendData -- {ret}");
             }
-            logIt($"SendData -- {ret}");
             return ret;
         }
 
