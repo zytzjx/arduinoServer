@@ -25,6 +25,7 @@ namespace arduinoServer
         public EventWaitHandle mDataEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
         private Dictionary<int, bool> keys = new Dictionary<int, bool>();
         public int Index = 0;
+        private String sCom;
 
         public void ExitThread()
         {
@@ -60,7 +61,7 @@ namespace arduinoServer
         public bool SendData(string ss)
         {
             bool ret = false;
-            lock (mSerialPort)
+            lock (this)
             {
                 logIt($"SendData ++ {ss}");
                 if (String.IsNullOrEmpty(ss)) return ret;
@@ -72,9 +73,10 @@ namespace arduinoServer
                 }
                 catch (Exception e)
                 {
-
+                    logIt(e.ToString());
                 }
                 logIt($"SendData -- {ret}");
+                Thread.Sleep(150);
             }
             return ret;
         }
@@ -84,6 +86,7 @@ namespace arduinoServer
             bool result = false;
             if (!string.IsNullOrEmpty(serialPort))
             {
+                sCom = serialPort;
                 try
                 {
                     mSerialPort = new SerialPort(serialPort, 9600);
@@ -157,7 +160,11 @@ namespace arduinoServer
                         }
                     }
                 }
-                catch (TimeoutException) { }
+                catch (TimeoutException e) {
+                    logIt(e.ToString());
+                    //Close();
+                    //Open(sCom);
+                }
             }
             Close();
         }
