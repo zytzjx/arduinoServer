@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Management;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
@@ -37,6 +39,24 @@ namespace arduinoServer
         private Dictionary<int, TcpClient> callbacklist = new Dictionary<int, TcpClient>();
 
         private int oldStripSelect = 0;
+        public List<string> GetColorSensorPorts()
+        {
+            List<string> l = new List<string>();
+            {
+                ManagementClass mc = new ManagementClass("Win32_PnPEntity");
+                ManagementObjectCollection mcCollection = mc.GetInstances();
+                foreach (ManagementObject mo in mcCollection)
+                {
+                    string s = mo["Description"]?.ToString();
+                    if (string.Compare(s, "USB-SERIAL CH340") == 0)
+                    {
+                        //System.Diagnostics.Trace.WriteLine($"device: '{mo["Description"]}'");
+                        l.Add(mo["Caption"].ToString());
+                    }
+                }
+            }
+            return l;
+        }
 
         public void SendDatatoCallBack(String message)
         {
@@ -135,19 +155,29 @@ namespace arduinoServer
             config = (Dictionary<String, Object>)serializer.DeserializeObject(s);
             //GroupCnt = (((Object[])config["portlabel"]).ToArray(typeof(int))).Length;
             GroupCnt = ((Object[])config["portlabel"]).Cast<int>().ToArray().Length;
-            Object[] sComArray = { "COM3" };
+            List<string> sComs = GetColorSensorPorts();
+            Program.logIt($"serial coms count {sComs.Count}");
+            
+
+            Object[] sComArray = sComs.ToArray();//{ "COM3" };
             if (config.ContainsKey("serialports"))
             {
-                sComArray = (Object[])config["serialports"];
+                //sComArray = (Object[])config["serialports"];
             }
 
+            Regex r = new Regex(@"^USB-SERIAL CH340 \(([COM\d]+)\)$");
+            int index = 0;
+            for (int i = 0; i< sComs.Count; i++){
+                Match m = r.Match(sComs[i]);
+                if (m.Success)
+                {
+                    SerialMonitor sertmp = new SerialMonitor();
+                    sertmp.Index = index++;
 
-            for (int i = 0; i< sComArray.Length; i++){
-                SerialMonitor sertmp = new SerialMonitor();
-                sertmp.Index = i;
-                sertmp.Open(sComArray[i].ToString());
-                serials.Add(sertmp);
-                waitHandles.Add(sertmp.mDataEvent);
+                    sertmp.Open(m.Groups[1].Value.ToString());
+                    serials.Add(sertmp);
+                    waitHandles.Add(sertmp.mDataEvent);
+                }
             }
 
             MAX_Groupt = serials.Count();
