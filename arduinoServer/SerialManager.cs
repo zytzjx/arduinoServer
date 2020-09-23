@@ -347,7 +347,7 @@ namespace arduinoServer
             bool bret = false;
             int label = Convert.ToInt32(inpt["label"]) -1;
 
-            int gg = (label - 1) / GroupCnt;
+            int gg = label / GroupCnt;
             int ggmod = label % GroupCnt;
 
             int[] ledindexs = ((Object[])config["stripindexs"]).Cast<int>().ToArray();
