@@ -32,6 +32,10 @@ namespace arduinoServer
         [WebInvoke(UriTemplate = "/leds", RequestFormat = WebMessageFormat.Json,
             ResponseFormat = WebMessageFormat.Json, Method = "POST")]
         Stream Leds(Stream s);
+
+        [OperationContract]
+        [WebGet(UriTemplate = "/cleanup")]
+        Stream cleanup();
     }
 
     public class SerialService : ISerialServer
@@ -99,6 +103,13 @@ namespace arduinoServer
             var jss = new System.Web.Script.Serialization.JavaScriptSerializer();
             string s = jss.Serialize(o);
             return s;
+        }
+
+        public Stream cleanup()
+        {
+            Boolean b = Program.SerialManager.Cleanup();
+            Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes($"{"result":$b}"));
+            return ret;
         }
     }
 }

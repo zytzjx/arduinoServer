@@ -242,6 +242,19 @@ namespace arduinoServer
             Uninit();
         }
 
+        public bool Cleanup()
+        {
+            bool bret = true;
+            foreach(var ser in serials)
+            {
+                if (!ser.SendData("C\r"))
+                {
+                    bret = false;
+                }
+
+            }
+            return bret;
+        }
 
         public Dictionary<int, bool> GetKey(int id)
         {
