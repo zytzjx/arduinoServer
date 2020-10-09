@@ -173,7 +173,7 @@ namespace arduinoServer
                 //sComArray = (Object[])config["serialports"];
             }
 
-            Regex r = new Regex(@"^USB-SERIAL CH340 \(([COM\d]+)\)$");
+            Regex r = new Regex(@"^USB-SERIAL CH340 \(([COM\d]+)\)$|([COM\d]+)");
             int index = 0;
             for (int i = 0; i< sComs.Count; i++){
                 Match m = r.Match(sComs[i]);
