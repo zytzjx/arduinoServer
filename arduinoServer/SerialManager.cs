@@ -155,8 +155,16 @@ namespace arduinoServer
             config = (Dictionary<String, Object>)serializer.DeserializeObject(s);
             //GroupCnt = (((Object[])config["portlabel"]).ToArray(typeof(int))).Length;
             GroupCnt = ((Object[])config["portlabel"]).Cast<int>().ToArray().Length;
+
             List<string> sComs = GetColorSensorPorts();
             Program.logIt($"serial coms count {sComs.Count}");
+            if (config.ContainsKey("serialports"))
+            {
+                if (((Object[])config["serialports"]).Length > 1)
+                {
+                    sComs = ((Object[])config["serialports"]).Cast<String>().ToList();
+                }
+            }
             
 
             Object[] sComArray = sComs.ToArray();//{ "COM3" };
