@@ -67,6 +67,16 @@ namespace arduinoServer
                 if (String.IsNullOrEmpty(ss)) return ret;
                 try
                 {
+                    if (!mSerialPort.IsOpen)
+                    {
+                        Open(sCom);
+                    }
+                }catch(Exception e)
+                {
+                    logIt(e.ToString());
+                }
+                try
+                {
 
                     mSerialPort.Write(ss);
                     ret = true;
@@ -160,7 +170,7 @@ namespace arduinoServer
                         }
                     }
                 }
-                catch (TimeoutException e) {
+                catch (Exception e) {
                     logIt(e.ToString());
                     //Close();
                     //Open(sCom);

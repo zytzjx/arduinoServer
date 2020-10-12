@@ -181,8 +181,18 @@ namespace arduinoServer
                 {
                     SerialMonitor sertmp = new SerialMonitor();
                     sertmp.Index = index++;
-
-                    sertmp.Open(m.Groups[1].Value.ToString());
+                    String sComName = m.Groups[1].Value.ToString();
+                    if (String.IsNullOrEmpty(sComName))
+                    {
+                        sComName = m.Groups[0].Value.ToString();
+                    }
+                    Program.logIt($"{sComName} opening");
+                    int iretry = 5;
+                    while (!sertmp.Open(sComName))
+                    {
+                        Thread.Sleep(1000);
+                        if (iretry-- < 0) break;
+                    }
                     serials.Add(sertmp);
                     waitHandles.Add(sertmp.mDataEvent);
                 }
