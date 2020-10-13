@@ -43,6 +43,7 @@ namespace arduinoServer
         {
             List<string> l = new List<string>();
             {
+                Regex r = new Regex(@"^USB-SERIAL CH340 \(([COM\d]+)\)$");
                 ManagementClass mc = new ManagementClass("Win32_PnPEntity");
                 ManagementObjectCollection mcCollection = mc.GetInstances();
                 foreach (ManagementObject mo in mcCollection)
@@ -51,7 +52,13 @@ namespace arduinoServer
                     if (string.Compare(s, "USB-SERIAL CH340") == 0)
                     {
                         //System.Diagnostics.Trace.WriteLine($"device: '{mo["Description"]}'");
-                        l.Add(mo["Caption"].ToString());
+                        String ss = mo["Caption"].ToString();
+                        Match m = r.Match(ss);
+                        if (m.Success)
+                        {
+                            l.Add(m.Groups[1].Value);
+                        }
+                        //l.Add(mo["Caption"].ToString());
                     }
                 }
             }
@@ -167,25 +174,23 @@ namespace arduinoServer
             }
             
 
-            Object[] sComArray = sComs.ToArray();//{ "COM3" };
-            if (config.ContainsKey("serialports"))
-            {
-                //sComArray = (Object[])config["serialports"];
-            }
+            //Object[] sComArray = sComs.ToArray();//{ "COM3" };
+           
 
-            Regex r = new Regex(@"^USB-SERIAL CH340 \(([COM\d]+)\)$|([COM\d]+)");
+            //Regex r = new Regex(@"^USB-SERIAL CH340 \(([COM\d]+)\)$|^([COM\d]+)$");
             int index = 0;
             for (int i = 0; i< sComs.Count; i++){
-                Match m = r.Match(sComs[i]);
-                if (m.Success)
+                String sComName = sComs[i];
+                //Match m = r.Match(sComs[i]);
+                //if (m.Success)
                 {
                     SerialMonitor sertmp = new SerialMonitor();
                     sertmp.Index = index++;
-                    String sComName = m.Groups[1].Value.ToString();
-                    if (String.IsNullOrEmpty(sComName))
-                    {
-                        sComName = m.Groups[0].Value.ToString();
-                    }
+                    //String sComName = m.Groups[1].Value.ToString();
+                    //if (String.IsNullOrEmpty(sComName))
+                    //{
+                    //    sComName = m.Groups[0].Value.ToString();
+                    //}
                     Program.logIt($"{sComName} opening");
                     int iretry = 5;
                     while (!sertmp.Open(sComName))
