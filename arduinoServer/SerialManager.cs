@@ -218,6 +218,29 @@ namespace arduinoServer
 
             Thread thread1 = new Thread(MonitorThread);
             thread1.Start();
+
+            EZUSB ezUSB = new EZUSB();
+
+            ezUSB.AddUSBEventWatcher(USBEventHandler, USBEventHandler, new TimeSpan(0, 0, 1));
+
+        }
+
+        private void USBEventHandler(object sender, EventArrivedEventArgs e)
+        {
+            if (e.NewEvent.ClassPath.ClassName == "__InstanceCreationEvent")
+            {
+                Program.logIt("USB plug in time:" + DateTime.Now);
+            }
+            else if (e.NewEvent.ClassPath.ClassName == "__InstanceDeletionEvent")
+            {
+                Program.logIt("USB plug out time:" + DateTime.Now);
+            }
+            foreach (EZUSB.USBControllerDevice Device in EZUSB.WhoUSBControllerDevice(e))
+            {
+                Program.logIt("\tAntecedent：" + Device.Antecedent);
+                Program.logIt("\tDependent：" + Device.Dependent);
+               
+            }
         }
 
         private void AddStatus(SerialMonitor sertmp)
