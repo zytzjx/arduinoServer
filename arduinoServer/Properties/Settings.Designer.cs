@@ -40,5 +40,23 @@ namespace arduinoServer.Properties {
                 return ((bool)(this["CLIENTTRYCONN"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("{\"portlabel\": [ 1, 2, 3, 4, 5, 6,7,8 ]}")]
+        public string PORTLABELS {
+            get {
+                return ((string)(this["PORTLABELS"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("{\"stripindexs\": [ 1, 16, 30, 45, 60, 74, 89, 104 ]}")]
+        public string STRIPINDEX {
+            get {
+                return ((string)(this["STRIPINDEX"]));
+            }
+        }
     }
 }

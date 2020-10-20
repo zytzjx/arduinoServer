@@ -1,4 +1,5 @@
-﻿using System;
+﻿using arduinoServer.Properties;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management;
@@ -160,6 +161,16 @@ namespace arduinoServer
             String s = System.IO.File.ReadAllText(System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Serialconfig.json"));
             var serializer = new JavaScriptSerializer();
             config = (Dictionary<String, Object>)serializer.DeserializeObject(s);
+
+            var seriportLabels = new JavaScriptSerializer();
+            var portlabels = (Dictionary<String, Object>)serializer.DeserializeObject(Settings.Default.PORTLABELS);
+
+            var seri = new JavaScriptSerializer();
+            var StripIndex = (Dictionary<String, Object>)serializer.DeserializeObject(Settings.Default.STRIPINDEX);
+
+            config["portlabel"] = portlabels["portlabel"];
+            config["stripindexs"] = StripIndex["stripindexs"];
+
             //GroupCnt = (((Object[])config["portlabel"]).ToArray(typeof(int))).Length;
             GroupCnt = ((Object[])config["portlabel"]).Cast<int>().ToArray().Length;
 
