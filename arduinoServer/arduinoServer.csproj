@@ -49,6 +49,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EZUSB.cs" />
     <Compile Include="IntDictionaryConverter.cs" />
     <Compile Include="ISerialServer.cs" />
     <Compile Include="Program.cs" />
