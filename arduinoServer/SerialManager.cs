@@ -227,6 +227,9 @@ namespace arduinoServer
                 buttonstatus[i] = false;
             }
 
+            Thread.Sleep(1000);
+            Cleanup();
+
             Thread thread1 = new Thread(MonitorThread);
             thread1.Start();
 
@@ -302,13 +305,25 @@ namespace arduinoServer
         public bool Cleanup()
         {
             bool bret = true;
-            foreach(var ser in serials)
+            Thread.Sleep(1000);
+            for (int i = 0; i < 2; i++)
             {
-                if (!ser.SendData("C\r"))
+                foreach (var ser in serials)
                 {
-                    bret = false;
-                }
+                    try
+                    {
+                        if (!ser.SendData("C\r"))
+                        {
+                            bret = false;
+                            Program.logIt("cleanup failed");
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        Program.logIt("cleanup failed exception");
+                    }
 
+                }
             }
             return bret;
         }
@@ -451,6 +466,7 @@ namespace arduinoServer
 
         public void Uninit()
         {
+            Cleanup();
             mStopEvent.Set();
             lock (serials)
             {

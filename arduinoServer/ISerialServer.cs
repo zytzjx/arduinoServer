@@ -108,7 +108,7 @@ namespace arduinoServer
         public Stream cleanup()
         {
             Boolean b = Program.SerialManager.Cleanup();
-            Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes($"{"result":$b}"));
+            Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes($"{{\"result\":{b}}}"));
             return ret;
         }
     }
