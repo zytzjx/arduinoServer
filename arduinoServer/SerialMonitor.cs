@@ -27,6 +27,11 @@ namespace arduinoServer
         public int Index = 0;
         private String sCom;
 
+        public override string ToString()
+        {
+            return sCom;
+        }
+
         public void ExitThread()
         {
             mStopEvent.Set();

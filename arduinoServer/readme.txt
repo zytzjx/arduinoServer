@@ -47,3 +47,14 @@ B0,8,222,122,0,0,255,0,255,128,0,0,128,255,0,0,0,0,0,0,0,0,0,0,0,0,
 
 version:1.0.0.8
 add cleanup interface
+
+
+version:1.0.0.13
+Add 
+/count interface to get current use serial ports
+http://localhost:3420/count
+return json
+
+Add
+TCP Server will receive Key Clicked.
+'pressed:{label}\r\n'    server will receive key squance.

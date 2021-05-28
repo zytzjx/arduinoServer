@@ -36,6 +36,10 @@ namespace arduinoServer
         [OperationContract]
         [WebGet(UriTemplate = "/cleanup")]
         Stream cleanup();
+
+        [OperationContract]
+        [WebGet(UriTemplate = "/count")]
+        Stream serialcount();
     }
 
     public class SerialService : ISerialServer
@@ -109,6 +113,13 @@ namespace arduinoServer
         {
             Boolean b = Program.SerialManager.Cleanup();
             Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes($"{{\"result\":{b}}}"));
+            return ret;
+        }
+
+        public Stream serialcount()
+        {
+            string count = Program.SerialManager.SerialCountInfo();
+            Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes($"{{\"result\":{count}}}"));
             return ret;
         }
     }

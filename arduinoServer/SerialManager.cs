@@ -155,6 +155,19 @@ namespace arduinoServer
             return bret;
         }
 
+        public String SerialCountInfo()
+        {
+            var infos = new Dictionary<String, Object>();
+            infos["count"] = MAX_Groupt;
+            List<String> sSerial = new List<string>();
+            foreach (var ss in serials)
+            {
+                sSerial.Add(ss.ToString());
+            }
+            infos["serails"] = sSerial;
+            var serializer = new JavaScriptSerializer();
+            return serializer.Serialize(infos);
+        }
 
         public void Init()
         {
@@ -272,6 +285,10 @@ namespace arduinoServer
                         if ((buttonstatus[nLabelStart + plabels[i]] == true) && bstatus[i]==false)
                         {
                             SendDatatoCallBack($"release:{nLabelStart + plabels[i]}");
+                        }
+                        else if ((buttonstatus[nLabelStart + plabels[i]] == false) && bstatus[i] == true)
+                        {
+                            SendDatatoCallBack($"pressed:{nLabelStart + plabels[i]}");
                         }
                         buttonstatus[nLabelStart + plabels[i]] = bstatus[i];
                     }
