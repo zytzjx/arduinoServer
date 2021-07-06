@@ -57,4 +57,4 @@ return json
 
 Add
 TCP Server will receive Key Clicked.
-'pressed:{label}\r\n'    server will receive key squance.
+'pressed:{label}\r\n'    server will receive key sequence.
