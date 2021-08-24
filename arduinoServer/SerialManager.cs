@@ -197,24 +197,14 @@ namespace arduinoServer
                 }
             }
             
-
-            //Object[] sComArray = sComs.ToArray();//{ "COM3" };
-           
-
-            //Regex r = new Regex(@"^USB-SERIAL CH340 \(([COM\d]+)\)$|^([COM\d]+)$");
             int index = 0;
             for (int i = 0; i< sComs.Count; i++){
                 String sComName = sComs[i];
-                //Match m = r.Match(sComs[i]);
-                //if (m.Success)
+
                 {
                     SerialMonitor sertmp = new SerialMonitor();
                     sertmp.Index = index++;
-                    //String sComName = m.Groups[1].Value.ToString();
-                    //if (String.IsNullOrEmpty(sComName))
-                    //{
-                    //    sComName = m.Groups[0].Value.ToString();
-                    //}
+
                     Program.logIt($"{sComName} opening");
                     int iretry = 5;
                     while (!sertmp.Open(sComName))

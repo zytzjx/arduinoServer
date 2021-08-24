@@ -74,7 +74,7 @@ namespace arduinoServer
                 {
                     if (!mSerialPort.IsOpen)
                     {
-                        Open(sCom);
+                        Open(sCom, true);
                     }
                 }catch(Exception e)
                 {
@@ -96,8 +96,16 @@ namespace arduinoServer
             return ret;
         }
 
-        public bool Open(String serialPort)
+        public void OpenThread()
         {
+            Thread.Sleep(1000);
+            Thread thread1 = new Thread(ReadThread);
+            thread1.Start();
+        }
+
+        public bool Open(String serialPort, Boolean bCreateThead = true)
+        {
+            Close();
             bool result = false;
             if (!string.IsNullOrEmpty(serialPort))
             {
@@ -126,8 +134,11 @@ namespace arduinoServer
                 logIt("serial port " + mSerialPort.PortName + " on " + result);
             }
 
-            if (result)
+            if (result && bCreateThead)
             {
+                mStopEvent.Set();
+                Thread.Sleep(1000);
+                mStopEvent.Reset();
                 Thread thread1 = new Thread(ReadThread);
                 thread1.Start();
             }
@@ -152,11 +163,14 @@ namespace arduinoServer
         public  void ReadThread()
         {
             String smsg = "";
-            while (!mStopEvent.WaitOne(5))
+            int iRetry = 0;
+            logIt("ReadThread++");
+            while (!mStopEvent.WaitOne(10))
             {
                 try
                 {
                     string message = mSerialPort.ReadLine();
+                    iRetry = 0;
                     if (String.Compare(smsg, message, true) != 0)
                     { 
                         logIt($"{Index}: {message}");
@@ -177,11 +191,18 @@ namespace arduinoServer
                 }
                 catch (Exception e) {
                     logIt(e.ToString());
+                    iRetry ++;
                     //Close();
                     //Open(sCom);
                 }
+
+                if (iRetry > 10) break;
             }
-            Close();
+            if (mStopEvent.WaitOne(5))
+            {
+                mStopEvent.Reset();
+                Close();
+            }
         }
     }
 }
