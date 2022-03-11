@@ -40,6 +40,15 @@ namespace arduinoServer
         [OperationContract]
         [WebGet(UriTemplate = "/count")]
         Stream serialcount();
+
+
+        [OperationContract]
+        [WebGet(UriTemplate = "/version")]
+        Stream HWVersion();
+
+        [OperationContract]
+        [WebGet(UriTemplate = "/serialstatus")]
+        Stream SerialStatus();
     }
 
     public class SerialService : ISerialServer
@@ -47,6 +56,24 @@ namespace arduinoServer
         public Stream GetKey(int id)
         {
             Dictionary<int, bool> retdata = Program.SerialManager.GetKey(id);
+
+            Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes(intobjecttoString(retdata)));
+
+            return ret;
+        }
+
+        public Stream SerialStatus()
+        {
+            Dictionary<string, bool> retdata = Program.SerialManager.GetStatus();
+
+            Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes(objectToString(retdata)));
+
+            return ret;
+        }
+
+        public Stream HWVersion()
+        {
+            Dictionary<int, string> retdata = Program.SerialManager.HWVersion();
 
             Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes(intobjecttoString(retdata)));
 
@@ -122,5 +149,6 @@ namespace arduinoServer
             Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes($"{{\"result\":{count}}}"));
             return ret;
         }
+
     }
 }

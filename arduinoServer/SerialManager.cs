@@ -309,6 +309,32 @@ namespace arduinoServer
             Uninit();
         }
 
+        public Dictionary<int, string> HWVersion()
+        {
+            Dictionary<int, string> ret = new Dictionary<int, string>();
+            int index = 0;
+            foreach (var ser in serials)
+            {
+                try
+                {
+                    if (!ser.SendData("V\r"))
+                    {
+                        Program.logIt("Get Version failed");
+                        ret[index++] = "";
+                        continue;
+                    }
+                    Thread.Sleep(200);
+                    ret[index++] = ser.VersionInfo;
+                }
+                catch (Exception)
+                {
+                    Program.logIt("cleanup failed exception");
+                }
+
+            }
+            return ret;
+        }
+
         public bool Cleanup()
         {
             bool bret = true;
@@ -333,6 +359,24 @@ namespace arduinoServer
                 }
             }
             return bret;
+        }
+
+        public Dictionary<String, bool> GetStatus()
+        {
+            Dictionary<String, bool> ret = new Dictionary<string, bool>();
+            foreach (var ser in serials)
+            {
+                try
+                {
+                    ret[ser.ComName] = ser.Status;
+                }
+                catch (Exception)
+                {
+
+                }
+               
+            }
+            return ret;
         }
 
         public Dictionary<int, bool> GetKey(int id)
@@ -441,6 +485,7 @@ namespace arduinoServer
 
             int gg = label / GroupCnt;
             int ggmod = label % GroupCnt;
+            Program.logIt($"SendStrip++ {gg}:{ggmod}");
 
             int[] ledindexs = ((Object[])config["stripindexs"]).Cast<int>().ToArray();
 
@@ -465,7 +510,7 @@ namespace arduinoServer
                 bret = serials[gg].SendData($"A{ledindexs[ggmod]},{colors.Length},{ss}\r");
                 for (int i = gg+1; i < MAX_Groupt; i++)
                 {
-                   //bret =  serials[i].SendData($"A0,0\r");
+                   //serials[i].SendData($"A0,0\r");
                 }
             }
             return bret;

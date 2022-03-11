@@ -88,7 +88,7 @@ namespace arduinoServer
                     EventWaitHandle _quit = eh;
                     host.AddServiceEndpoint(typeof(ISerialServer),
                         binding,
-                        "http://localhost:3420/");
+                        "http://127.0.0.1:3420/");
                     host.Open();
                     Console.WriteLine(@"go to http://localhost:3420/ to test");
                     Console.WriteLine(@"Press any key to terminate...");
