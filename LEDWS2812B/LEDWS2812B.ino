@@ -7,32 +7,41 @@
 #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
 #endif
 
+#define DATA_PIN 3        // Single LED, Status Led. CPU IO
+#define NUM_LEDS_STATUS 10 // Status LED Count, it is same as Fixture support count.
 
-#define DATA_PIN 3
 #define LED_TYPE WS2812B
-#define COLOR_ORDER GRB
-#define NUM_LEDS 144
+//#define COLOR_ORDER GRB
+
 #define BRIGHTNESS 128
-#define PHONELEDCNT 8
-#define MAX_GROUP 18
-#define MAX_PHONE_GROUP 16
 
-#define DATA_PIN_STATUS 5
-#define NUM_LEDS_STATUS 8
+#define DATA_PIN_STATUS 5 // Strip Control, CUP IO
+#define NUM_LEDS 144      // Strip Led Count
+#define PHONELEDCNT 8     // Every Port LED NUMBER
 
-struct RGB {
-  byte r;
-  byte g;
-  byte b;
+#define MAX_PHONE_GROUP 16 // MAX SUPPORT 16 PORTS
+int keys[MAX_PHONE_GROUP] = {6, 7, 8, 9, 10, 11, 12, 13, 2, 4, A0, A1, A2, A3, A4, A5};
+
+enum MODE
+{
+    Normal,
+    Debug,
+    DebugStop
+};
+MODE gDebugMode = Normal;
+
+struct RGB
+{
+    byte r;
+    byte g;
+    byte b;
 };
 
-
 CRGB leds[NUM_LEDS];
-//CRGB leds1[NUM_LEDS];
-//CRGB ledsstatus[NUM_LEDS_STATUS];
 int phoneclrcnt = 0;
-struct RGB serialleds[MAX_PHONE_GROUP + 1];
-struct RGB leds_bak[NUM_LEDS];
+struct RGB serialleds[MAX_PHONE_GROUP + 1];  // Serial Receive LED Status
+struct RGB leds_bak[NUM_LEDS];               // Backup Strip LED
+struct RGB leds_status_bak[NUM_LEDS_STATUS]; // Backup single LED status
 
 // When setting up the NeoPixel library, we tell it how many pixels,
 // and which pin to use to send signals. Note that for older NeoPixel
@@ -40,187 +49,294 @@ struct RGB leds_bak[NUM_LEDS];
 // strandtest example for more information on possible values.
 Adafruit_NeoPixel pixels(NUM_LEDS_STATUS, DATA_PIN_STATUS, NEO_GRB + NEO_KHZ800);
 
-int keys[MAX_PHONE_GROUP] = {6, 7, 8, 9, 10, 11, 12, 13, 2, 4, A0, A1, A2, A3, A4, A5};
+#define VERSION "version: 2.0.1"
+/// 1.0.1 #5707 requirement
 
-#define VERSION "version: 1.0.1"
-///1.0.1 #5707 requirement
-
-
-void LEDStrip(int onoff) {
-  CRGB::HTMLColorCode led = CRGB::White;
-  if (onoff == 0)
-  {
-    led = CRGB::Black;
-  }
-  for (int i = 0; i < NUM_LEDS; ++i) {
-    leds[i] = led;
-  }
-  FastLED.show();
-}
-
-void LEDStatus(int onoff) {
-  uint32_t clr = pixels.Color(0, 0, 0);
-  if (onoff != 0) {
-    clr = pixels.Color(255, 255, 255);
-  }
-  for (int i = 0; i < NUM_LEDS_STATUS; i++) {
-    pixels.setPixelColor(i, clr);
-  }
-  pixels.show();   // Send the updated pixel colors to the hardware.
-}
-
-void setup() {
-  Serial.begin(9600);
-  Serial.println("Smart-Receiving");
-  Serial.println(VERSION);
-  for (int i = 0; i < MAX_PHONE_GROUP; ++i) {
-    pinMode(keys[i], INPUT);
-  }
-  delay(1000);
-  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
-  FastLED.setBrightness(BRIGHTNESS);
-  //FastLED.addLeds<NEOPIXEL, DATA_PIN_STATUS>(ledsstatus, NUM_LEDS_STATUS);
-  //FastLED.setBrightness(255);
-#if defined(__AVR_ATtiny85__) && (F_CPU == 16000000)
-  clock_prescale_set(clock_div_1);
-#endif
-  // END of Trinket-specific code.
-
-  pixels.begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
-  pixels.setBrightness(BRIGHTNESS);
-
-  LEDStrip(1);
-  LEDStatus(1);
-  for (int ll = 0; ll < 5; ll++)
-  {
-    delay(1000);
-  }
-  LEDStrip(0);
-  LEDStatus(0);
-}
-
-// switches off all LEDs
-void showProgramCleanUp(long delayTime) {
-  for (int i = 0; i < NUM_LEDS; ++i) {
-    leds[i] = CRGB::Black;
-  }
-  FastLED.show();
-  delay(delayTime);
-}
-// switches off all status LEDs
-void showPhoneStatusCleanUp(long delayTime) {
-  for (int i = 0; i < NUM_LEDS_STATUS; i++) {
-    pixels.setPixelColor(i, pixels.Color(0, 0, 0));
-  }
-  pixels.show();   // Send the updated pixel colors to the hardware.
-  delay(delayTime);
-}
-
-void showPhoneLeds(int index, long delayTime)
+  
+bool digitalReadA7()
 {
-  setPhoneLeds(index, delayTime);
-  for (int i = 0; i < NUM_LEDS; i++) {
-    leds[i] = CRGB(leds_bak[i].r, leds_bak[i].g, leds_bak[i].b);
-  }
-  FastLED.show();
-  delay(delayTime);
+    return analogRead(A7) > 400 ? true : false;
 }
 
-void setPhoneLeds(int index, long delayTime) {
-  if (index < NUM_LEDS) {
-    //showProgramCleanUp(delayTime);
-    for (int i = 0; i < NUM_LEDS; ) {
-      //Serial.print("a");
-      if (i == index && phoneclrcnt > 0) {
-        for (int j = 0; (j < PHONELEDCNT) && (i < NUM_LEDS); j++) {
-          int iii = j % phoneclrcnt;
-          leds_bak[i].r = serialleds[iii].r;
-          leds_bak[i].g = serialleds[iii].g;
-          leds_bak[i].b = serialleds[iii].b;
-          i++;
-        }
-        break;
-      }
-      //leds[i] = CRGB::Black;
-      i++;
-
-    }
-    //FastLED.show();
-    //delay(delayTime);
-  }
-}
-
-
-void showPhoneLedsStatus(int index, long delayTime) {
-  for (int i = 0; i < NUM_LEDS_STATUS; i++) {
-    if (i < phoneclrcnt)
+void LEDStrip(int onoff, bool show, bool rcord=true)
+{
+    CRGB::HTMLColorCode led = CRGB::White;
+    struct RGB clr = {255, 255, 255};
+    if (onoff == 0)
     {
-      pixels.setPixelColor(i, pixels.Color(serialleds[i].r, serialleds[i].g, serialleds[i].b));
-    } else {
-      pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+        led = CRGB::Black;
+        clr = {0, 0, 0};
     }
-  }
-  pixels.show();   // Send the updated pixel colors to the hardware.
-  delay(delayTime);
+    for (int i = 0; i < NUM_LEDS; ++i)
+    {
+        leds[i] = led;
+        if(rcord){ 
+          leds_bak[i] = clr;
+        }
+    }
+    if (show)
+    {
+        FastLED.show();
+    }
 }
 
-
-void loop() {
-  int incomingByte = 0;
-  int index = 0;
-  int clrindex = 0;
-  int r, g, b;
-  bool bRecv = false;
-  bool bFullprotocol = false;
-  if (Serial.available() > 0) {
-    incomingByte = Serial.read();
-    if ((incomingByte == 'A') || (incomingByte == 'B')) {
-      index = Serial.parseInt();
-      phoneclrcnt = Serial.parseInt();
-      if (phoneclrcnt <= MAX_PHONE_GROUP)
-      {
-        while (clrindex < phoneclrcnt) {
-          serialleds[clrindex].r = Serial.parseInt();
-          serialleds[clrindex].g = Serial.parseInt();
-          serialleds[clrindex].b = Serial.parseInt();
-          //serialleds[clrindex++] = CRGB(r,g,b);
-          clrindex++;
+void LEDStatus(int onoff, bool show, bool rcord=true)
+{
+    uint32_t clr = pixels.Color(0, 0, 0);
+    struct RGB colr = {0, 0, 0};
+    if (onoff != 0)
+    {
+        clr = pixels.Color(255, 255, 255);
+        colr = {255, 255, 255};
+    }
+    for (int i = 0; i < NUM_LEDS_STATUS; i++)
+    {
+        pixels.setPixelColor(i, clr);
+        if(rcord){ 
+          leds_status_bak[i] = colr;
         }
-      }
-      if (clrindex == phoneclrcnt)
-        bRecv = true;
-    } else if (incomingByte == 'C' || incomingByte == 'L') {
-      bRecv = true;
-    } else if (incomingByte == '\r') {
-      bFullprotocol = true;
-    } else if (incomingByte == 'V') {
-      Serial.println(VERSION);
     }
-  }
-  ///*
-  Serial.print("I,");
-  for (int i = 0; i < MAX_PHONE_GROUP; ++i) {
-    Serial.print(digitalRead(keys[i]), DEC);  Serial.print(',');
-  }
-  Serial.println();
-  //*/
-  if (bRecv) {
-    if (incomingByte == 'A') {
-      showPhoneLeds(index, 0);
-    } else if (incomingByte == 'B') {
-      showPhoneLedsStatus(index, 0);
-    } else if (incomingByte == 'C') {
-      showProgramCleanUp(0);
-      showPhoneStatusCleanUp(0);
-    } else if (incomingByte == 'L') {
-      showProgramCleanUp(0);
-      showPhoneStatusCleanUp(0);
+    if (show)
+    {
+        pixels.show(); // Send the updated pixel colors to the hardware.
+    }
+}
+
+void setup()
+{
+    Serial.begin(9600);
+    Serial.println(F("Smart-Receiving"));
+    Serial.println(F(VERSION));
+    for (int i = 0; i < MAX_PHONE_GROUP; ++i)
+    {
+        pinMode(keys[i], INPUT);
+    }
+    delay(1000);
+    FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
+    FastLED.setBrightness(BRIGHTNESS);
+
+#if defined(__AVR_ATtiny85__) && (F_CPU == 16000000)
+    clock_prescale_set(clock_div_1);
+#endif
+    // END of Trinket-specific code.
+
+    pixels.begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
+    pixels.setBrightness(BRIGHTNESS);
+
+    LEDStrip(1, true);
+    LEDStatus(1, true);
+    for (int ll = 0; ll < 5; ll++)
+    {
+        delay(1000);
+    }
+    LEDStrip(0, true);
+    LEDStatus(0, true);
+}
+
+// // switches off all LEDs
+// void showProgramCleanUp(long delayTime)
+// {
+//     for (int i = 0; i < NUM_LEDS; ++i)
+//     {
+//         leds[i] = CRGB::Black;
+//         leds_bak[i] = {0, 0, 0};
+//     }
+//     FastLED.show();
+//     delay(delayTime);
+// }
+
+// // switches off all status LEDs
+// void showPhoneStatusCleanUp(long delayTime)
+// {
+//     for (int i = 0; i < NUM_LEDS_STATUS; i++)
+//     {
+//         pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+//         leds_status_bak[i] = {0, 0, 0};
+//     }
+//     pixels.show(); // Send the updated pixel colors to the hardware.
+//     delay(delayTime);
+// }
+
+void showPhoneLeds(int index, long delayTime, bool show)
+{
+    setPhoneLeds(index);
+    for (int i = 0; i < NUM_LEDS; i++)
+    {
+        leds[i] = CRGB(leds_bak[i].r, leds_bak[i].g, leds_bak[i].b);
+    }
+    if (show)
+    {
+        FastLED.show();
+        delay(delayTime);
+    }
+}
+
+void setPhoneLeds(int index)
+{
+    if (index < NUM_LEDS)
+    {
+        for (int i = 0; i < NUM_LEDS;)
+        {
+            if (i == index && phoneclrcnt > 0)
+            {
+                for (int j = 0; (j < PHONELEDCNT) && (i < NUM_LEDS); j++)
+                {
+                    int iii = j % phoneclrcnt;
+                    leds_bak[i].r = serialleds[iii].r;
+                    leds_bak[i].g = serialleds[iii].g;
+                    leds_bak[i].b = serialleds[iii].b;
+                    i++;
+                }
+                break;
+            }
+            i++;
+        }
+    }
+}
+
+// Debug Mode to Normal Mode Restore status
+void RestoreStripLeds()
+{
+    for (int i = 0; i < NUM_LEDS; i++)
+    {
+        leds[i] = CRGB(leds_bak[i].r, leds_bak[i].g, leds_bak[i].b);
+    }
+    FastLED.show();
+}
+// Debug Mode to Normal Mode Restore status
+void RestoreStatusLeds()
+{
+    for (int i = 0; i < NUM_LEDS_STATUS; i++)
+    {
+        pixels.setPixelColor(i, pixels.Color(leds_status_bak[i].r, leds_status_bak[i].g, leds_status_bak[i].b));
+    }
+    pixels.show(); // Send the updated pixel colors to the hardware.
+}
+
+void showPhoneLedsStatus(long delayTime, bool show)//int index, 
+{
+    for (int i = 0; i < NUM_LEDS_STATUS; i++)
+    {
+        if (i < phoneclrcnt)
+        {
+            pixels.setPixelColor(i, pixels.Color(serialleds[i].r, serialleds[i].g, serialleds[i].b));
+            leds_status_bak[i] = serialleds[i];
+        }
+        else
+        {
+            pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+            leds_status_bak[i] = {
+                0,
+                0,
+                0,
+            };
+        }
+    }
+    if (show)
+    {
+        pixels.show(); // Send the updated pixel colors to the hardware.
+        delay(delayTime);
+    }
+}
+
+void loop()
+{
+    int incomingByte = 0;
+    int index = 0;
+    int clrindex = 0;
+    //int r, g, b;
+    bool bRecv = false;
+    //bool bFullprotocol = false;
+    if (Serial.available() > 0)
+    {
+        incomingByte = Serial.read();
+        if ((incomingByte == 'A') || (incomingByte == 'B'))
+        {
+            index = Serial.parseInt();
+            phoneclrcnt = Serial.parseInt();
+            if (phoneclrcnt <= MAX_PHONE_GROUP)
+            {
+                while (clrindex < phoneclrcnt)
+                {
+                    serialleds[clrindex].r = Serial.parseInt();
+                    serialleds[clrindex].g = Serial.parseInt();
+                    serialleds[clrindex].b = Serial.parseInt();
+                    // serialleds[clrindex++] = CRGB(r,g,b);
+                    clrindex++;
+                }
+            }
+            if (clrindex == phoneclrcnt)
+                bRecv = true;
+        }
+        else if (incomingByte == 'C' || incomingByte == 'L')
+        {
+            bRecv = true;
+        }
+        else if (incomingByte == '\r')
+        {
+            //bFullprotocol = true;
+        }
+        else if (incomingByte == 'V')
+        {
+            Serial.println(VERSION);
+        }
+    }
+    ///*
+    Serial.print("I,");
+    for (int i = 0; i < MAX_PHONE_GROUP; ++i)
+    {
+        Serial.print(digitalRead(keys[i]), DEC);
+        Serial.print(',');
+    }
+    Serial.println();
+    //*/
+    if (digitalReadA7())
+    {
+        if (gDebugMode != Debug)
+        {
+            LEDStrip(1, true, false);
+            LEDStatus(1, true, false);
+        }
+        gDebugMode = Debug;
+    }
+    else
+    {
+        if (gDebugMode == Debug)
+        {
+            gDebugMode = Normal;
+            RestoreStripLeds();
+            RestoreStatusLeds();
+        }
     }
 
-  }
-  else {
-    delay(50);
-  }
-
-
+    //*/
+    if (bRecv)
+    {
+        if (incomingByte == 'A')
+        {
+            showPhoneLeds(index, 0, gDebugMode == Normal);
+        }
+        else if (incomingByte == 'B')
+        {
+            showPhoneLedsStatus(0, gDebugMode == Normal);//index,
+        }
+        else if (incomingByte == 'C')
+        {
+            LEDStrip(0, gDebugMode == Normal);
+            LEDStatus(0, gDebugMode == Normal);
+            // showProgramCleanUp(0);
+            // showPhoneStatusCleanUp(0);
+        }
+        else if (incomingByte == 'L')
+        {
+            LEDStrip(1, gDebugMode == Normal);
+            LEDStatus(1, gDebugMode == Normal);
+            // showProgramCleanUp(0);
+            // showPhoneStatusCleanUp(0);
+        }
+    }
+    else
+    {
+        delay(50);
+    }
 }

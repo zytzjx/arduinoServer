@@ -37,6 +37,8 @@ namespace arduinoServer
         private int MAX_Groupt = 0;
         RGB[] status_leds;
 
+        private bool FinishInit = false;
+
         private Dictionary<int, TcpClient> callbacklist = new Dictionary<int, TcpClient>();
 
         private int oldStripSelect = 0;
@@ -131,6 +133,14 @@ namespace arduinoServer
             return bret;
         }
 
+        public List<int> GetCallBackPort()
+        {
+            lock (callbacklist)
+            {
+                return callbacklist.Keys.ToList();
+            }
+        }
+
         public Boolean AddCallBackList(int Port)
         {
             Boolean bret = false;
@@ -187,7 +197,11 @@ namespace arduinoServer
             //GroupCnt = (((Object[])config["portlabel"]).ToArray(typeof(int))).Length;
             GroupCnt = ((Object[])config["portlabel"]).Cast<int>().ToArray().Length;
 
-            List<string> sComs = GetColorSensorPorts();
+            List<string> sComsConfig = ((Object[])config["serialports"]).Select(i => i.ToString()).ToList();//GetColorSensorPorts();
+            Program.logIt($"Config file include:{String.Join(", ", sComsConfig.ToArray())}");
+            List<string> sComsPC = GetColorSensorPorts();
+            Program.logIt($"System Exists include:{String.Join(", ", sComsPC.ToArray())}");
+            List<String> sComs = sComsConfig.Intersect(sComsPC).ToList();
             Program.logIt($"serial coms count {sComs.Count}");
             if (config.ContainsKey("serialports"))
             {
@@ -230,8 +244,8 @@ namespace arduinoServer
                 buttonstatus[i] = false;
             }
 
-            Thread.Sleep(1000);
-            Cleanup();
+            Thread.Sleep(5000);
+            //Cleanup();
 
             Thread thread1 = new Thread(MonitorThread);
             thread1.Start();
@@ -240,6 +254,7 @@ namespace arduinoServer
 
             ezUSB.AddUSBEventWatcher(USBEventHandler, USBEventHandler, new TimeSpan(0, 0, 1));
 
+            FinishInit = true;
         }
 
         private void USBEventHandler(object sender, EventArrivedEventArgs e)
@@ -364,11 +379,19 @@ namespace arduinoServer
         public Dictionary<String, bool> GetStatus()
         {
             Dictionary<String, bool> ret = new Dictionary<string, bool>();
+            
             foreach (var ser in serials)
             {
                 try
                 {
-                    ret[ser.ComName] = ser.Status;
+                    if (FinishInit) {
+                        ret[ser.ComName] = ser.Status;
+                    }
+                    else
+                    {
+                        ret[ser.ComName] = false;
+                    }
+                    
                 }
                 catch (Exception)
                 {

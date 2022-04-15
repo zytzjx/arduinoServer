@@ -23,12 +23,14 @@ namespace arduinoServer
 
         private SerialPort mSerialPort;
         private EventWaitHandle mStopEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
+        private EventWaitHandle mHeartEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
         public EventWaitHandle mDataEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
         private Dictionary<int, bool> keys = new Dictionary<int, bool>();
         public int Index = 0;
         private String sCom;
         private MemoryStream ms = new MemoryStream();
         private bool bStatus = true;
+        private bool bExit = false;
 
         public String VersionInfo="1.0.0";
 
@@ -54,7 +56,9 @@ namespace arduinoServer
 
         public void ExitThread()
         {
+            logIt("ExitThread ++");
             mStopEvent.Set();
+            bExit = true;
         }
 
         public void CopyLabelKeys(Dictionary<int, bool> kks, int[] labelmap)
@@ -92,16 +96,6 @@ namespace arduinoServer
                 if (String.IsNullOrEmpty(ss)) return ret;
                 try
                 {
-                    if (!mSerialPort.IsOpen)
-                    {
-                        Open(sCom, true);
-                    }
-                }catch(Exception e)
-                {
-                    logIt(e.ToString());
-                }
-                try
-                {
 
                     mSerialPort.Write(ss);
                     ret = true;                 
@@ -126,6 +120,7 @@ namespace arduinoServer
 
         public bool Open(String serialPort, Boolean bCreateThead = true)
         {
+            logIt($"Open++ {serialPort}   {bCreateThead}");
             Close();
             bool result = false;
             if (!string.IsNullOrEmpty(serialPort))
@@ -142,12 +137,12 @@ namespace arduinoServer
                     mSerialPort.DtrEnable = true;
                     mSerialPort.ReadTimeout = 1000;
                     mSerialPort.WriteTimeout = 1000;
-                    mSerialPort.DataReceived += new SerialDataReceivedEventHandler(DataReceivedHandler);
                     mSerialPort.Open();
-                    result = mSerialPort.IsOpen;
-                    Thread.Sleep(50);
                     mSerialPort.DiscardInBuffer();
                     mSerialPort.DiscardOutBuffer();
+                    mSerialPort.DataReceived += new SerialDataReceivedEventHandler(DataReceivedHandler);
+                    result = mSerialPort.IsOpen;
+                    Thread.Sleep(50);
                     bStatus = true;
                 }
                 catch (Exception e)
@@ -156,7 +151,7 @@ namespace arduinoServer
                     logIt(e.StackTrace);
                     bStatus = false;
                 }
-                logIt($"serial port { mSerialPort.PortName } on {result}");
+                logIt($"serial port {sCom} on {result}");
             }
 
             if (result && bCreateThead)
@@ -166,6 +161,7 @@ namespace arduinoServer
                 mStopEvent.Reset();
                 Thread thread1 = new Thread(ReadThread);
                 thread1.Start();
+                (new Thread(MonitorPort)).Start();
             }
 
             return result;
@@ -180,8 +176,9 @@ namespace arduinoServer
             l = sp.Read(data, 0, l);
             lock (mStopEvent)
             {
-                byte[] dataleft = ms.ToArray().Skip((int)ms.Position).ToArray();
+                ms.Write(data, 0, l);
             }
+            mHeartEvent.Set();
         }
 
 
@@ -199,13 +196,50 @@ namespace arduinoServer
             return result;
         }
 
+
+        private void MonitorPort()
+        {
+            logIt("MonitorPort++");
+            Thread.Sleep(6000);//start self detect.
+            int irtry = 1;
+            while (!bExit)
+            {
+                if (mHeartEvent.WaitOne(5000))
+                {
+                    Thread.Sleep(100);
+                }
+                else
+                {
+                    if (null == mSerialPort || !mSerialPort.IsOpen)
+                    {
+                        Thread.Sleep(irtry * 500);
+                        bStatus = true;
+                        Open(sCom);
+                    }
+                    if (null != mSerialPort && mSerialPort.IsOpen)
+                    {
+                        logIt($"{sCom} serial port open successfully.");
+                        irtry = 1;
+                    }
+                    else
+                    {
+                        logIt($"{sCom} serial port open failed.");
+                        irtry++;
+                        if (irtry == 12) irtry = 12;
+                    }
+                }
+            }
+            logIt($"MonitorPort-- {bExit}");
+        }
+
         public  void ReadThread()
         {
             String smsg = "";
             int iRetry = 0;
             logIt("ReadThread++");
-            while (!mStopEvent.WaitOne(10))
-            {
+           List<byte> llb = new List<byte>();
+           while (!mStopEvent.WaitOne(10))
+           {
                 try
                 {
                     lock (mStopEvent)
@@ -213,7 +247,6 @@ namespace arduinoServer
                         ms.Seek(0, SeekOrigin.Begin);
                         int count = 0;
                         byte dd = 0;
-                        List<byte> llb = new List<byte>();
 
                         while (count < ms.Length)
                         {
@@ -231,7 +264,7 @@ namespace arduinoServer
                                         VersionInfo = message.Replace("version: ", "");
                                         continue;
                                     }
-                                    if (String.Compare(smsg, message, true) != 0)
+                                    if (/*message.Length==34 && message.StartsWith("I,") && */String.Compare(smsg, message, true) != 0)
                                     {
                                         logIt($"{Index}: {message}");
                                         smsg = message;
@@ -251,17 +284,18 @@ namespace arduinoServer
                                 }
                                 continue;
                             }
+                            if (dd == 0)
+                            {
+                                llb.Clear();
+                                continue;
+                            }
                             llb.Add(dd);
                         }
-                        byte[] data = llb.ToArray(); //ms.ToArray().Skip((int)ms.Position).ToArray();
-                        if (data.Length > 0)
+                        ms.SetLength(0);
+                        if (llb.Count() > 0)
                         {
-                            ms = new MemoryStream();
-                            ms.Write(data, 0, data.Length);
-                        }
-                        else
-                        {
-                            ms = new MemoryStream();
+                            ms.Write(llb.ToArray(), 0, llb.Count);
+                            llb.Clear();
                         }
                     }
                 }
@@ -274,7 +308,7 @@ namespace arduinoServer
             }
             if (mStopEvent.WaitOne(5))
             {
-                mStopEvent.Reset();
+               // mStopEvent.Reset();
                 Close();
             }
         }

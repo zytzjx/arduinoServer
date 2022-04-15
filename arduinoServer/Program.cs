@@ -18,6 +18,8 @@ namespace arduinoServer
         const string androidServer_Event_Name = "ARDUINOSERVER_04122020";
 
         public static SerialManager SerialManager = new SerialManager();
+
+        [MTAThread]
         static void Main(string[] args)
         {
             System.Configuration.Install.InstallContext _args = new System.Configuration.Install.InstallContext(null, args);

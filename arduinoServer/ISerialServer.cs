@@ -49,6 +49,10 @@ namespace arduinoServer
         [OperationContract]
         [WebGet(UriTemplate = "/serialstatus")]
         Stream SerialStatus();
+
+        [OperationContract]
+        [WebGet(UriTemplate = "/querycallback")]
+        Stream QueryRegister();
     }
 
     public class SerialService : ISerialServer
@@ -59,6 +63,12 @@ namespace arduinoServer
 
             Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes(intobjecttoString(retdata)));
 
+            return ret;
+        }
+
+        public Stream QueryRegister()
+        {
+            Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes(objectToString(Program.SerialManager.GetCallBackPort())));
             return ret;
         }
 

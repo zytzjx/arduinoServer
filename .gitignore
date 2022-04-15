@@ -9,3 +9,5 @@
 /.vs
 /.svn
 /testSerailPort
+/LEDWS2812B/LEDWS2812B.ino.eightanaloginputs.hex
+/LEDWS2812B/LEDWS2812B.ino.with_bootloader.eightanaloginputs.hex
