@@ -26,13 +26,15 @@ namespace arduinoServer
         private EventWaitHandle mHeartEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
         public EventWaitHandle mDataEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
         private Dictionary<int, bool> keys = new Dictionary<int, bool>();
+        private Object _myLock = new Object();
+        private Object _myLockRead = new Object();
         public int Index = 0;
         private String sCom;
         private MemoryStream ms = new MemoryStream();
         private bool bStatus = true;
         private bool bExit = false;
 
-        public String VersionInfo="1.0.0";
+        public String VersionInfo = "1.0.0";
 
         public override string ToString()
         {
@@ -69,7 +71,7 @@ namespace arduinoServer
                 {
                     if (pair.Key < labelmap.Length)
                     {
-                        kks.Add(labelmap[pair.Key]+Index*labelmap.Length, pair.Value);
+                        kks.Add(labelmap[pair.Key] + Index * labelmap.Length, pair.Value);
                     }
                 }
             }
@@ -98,7 +100,7 @@ namespace arduinoServer
                 {
 
                     mSerialPort.Write(ss);
-                    ret = true;                 
+                    ret = true;
                 }
                 catch (Exception e)
                 {
@@ -111,12 +113,12 @@ namespace arduinoServer
             return ret;
         }
 
-        public void OpenThread()
-        {
-            Thread.Sleep(1000);
-            Thread thread1 = new Thread(ReadThread);
-            thread1.Start();
-        }
+        //public void OpenThread()
+        //{
+        //    Thread.Sleep(1000);
+        //    Thread thread1 = new Thread(ReadThread);
+        //    thread1.Start();
+        //}
 
         public bool Open(String serialPort, Boolean bCreateThead = true)
         {
@@ -168,7 +170,7 @@ namespace arduinoServer
 
         }
 
-        private  void DataReceivedHandler(object sender, SerialDataReceivedEventArgs e)
+        private void DataReceivedHandler(object sender, SerialDataReceivedEventArgs e)
         {
             SerialPort sp = (SerialPort)sender;
             int l = sp.BytesToRead;
@@ -202,115 +204,149 @@ namespace arduinoServer
             logIt("MonitorPort++");
             Thread.Sleep(6000);//start self detect.
             int irtry = 1;
-            while (!bExit)
+            if (Monitor.TryEnter(_myLock))
             {
-                if (mHeartEvent.WaitOne(5000))
+                try
                 {
-                    Thread.Sleep(100);
+                    while (!bExit)
+                    {
+                        if (mHeartEvent.WaitOne(5000))
+                        {
+                            Thread.Sleep(100);
+                        }
+                        else
+                        {
+                            if (null == mSerialPort || !mSerialPort.IsOpen)
+                            {
+                                Thread.Sleep(irtry * 500);
+                                bStatus = true;
+                                Open(sCom);
+                            }
+                            if (null != mSerialPort && mSerialPort.IsOpen)
+                            {
+                                logIt($"{sCom} serial port open successfully.");
+                                irtry = 1;
+                            }
+                            else
+                            {
+                                logIt($"{sCom} serial port open failed.");
+                                irtry++;
+                                if (irtry == 12) irtry = 12;
+                            }
+                        }
+                    }
                 }
-                else
+                finally
                 {
-                    if (null == mSerialPort || !mSerialPort.IsOpen)
-                    {
-                        Thread.Sleep(irtry * 500);
-                        bStatus = true;
-                        Open(sCom);
-                    }
-                    if (null != mSerialPort && mSerialPort.IsOpen)
-                    {
-                        logIt($"{sCom} serial port open successfully.");
-                        irtry = 1;
-                    }
-                    else
-                    {
-                        logIt($"{sCom} serial port open failed.");
-                        irtry++;
-                        if (irtry == 12) irtry = 12;
-                    }
+                    Monitor.Exit(_myLock);
                 }
             }
+            else
+            {
+                logIt("Thread MonitorPort has running.");
+            }
+
+            
             logIt($"MonitorPort-- {bExit}");
         }
 
-        public  void ReadThread()
+        public void ReadThread()
         {
             String smsg = "";
             int iRetry = 0;
             logIt("ReadThread++");
-           List<byte> llb = new List<byte>();
-           while (!mStopEvent.WaitOne(10))
-           {
+            List<byte> llb = new List<byte>();
+            if (Monitor.TryEnter(_myLockRead))
+            {
                 try
                 {
-                    lock (mStopEvent)
+                    while (!mStopEvent.WaitOne(10))
                     {
-                        ms.Seek(0, SeekOrigin.Begin);
-                        int count = 0;
-                        byte dd = 0;
-
-                        while (count < ms.Length)
+                        try
                         {
-                            count++;
-                            dd = (byte)ms.ReadByte();
-                            if (dd == '\r' || dd == '\n')
+                            lock (mStopEvent)
                             {
-                                if (llb.Count > 0)
+                                ms.Seek(0, SeekOrigin.Begin);
+                                int count = 0;
+                                byte dd = 0;
+
+                                while (count < ms.Length)
                                 {
-                                    string message =Encoding.UTF8.GetString(llb.ToArray());// Console.WriteLine(Encoding.UTF8.GetString(llb.ToArray()));
-                                    llb.Clear();
-                                    //logIt($"{Index}: {message}");
-                                    if (message.StartsWith("version:"))
+                                    count++;
+                                    dd = (byte)ms.ReadByte();
+                                    if (dd == '\r' || dd == '\n')
                                     {
-                                        VersionInfo = message.Replace("version: ", "");
-                                        continue;
-                                    }
-                                    if (/*message.Length==34 && message.StartsWith("I,") && */String.Compare(smsg, message, true) != 0)
-                                    {
-                                        logIt($"{Index}: {message}");
-                                        smsg = message;
-                                        string[] status = message.Split(',');
-                                        if (status[0] == "I")
+                                        if (llb.Count > 0)
                                         {
-                                            lock (keys)
+                                            string message = Encoding.UTF8.GetString(llb.ToArray());// Console.WriteLine(Encoding.UTF8.GetString(llb.ToArray()));
+                                            llb.Clear();
+                                            //logIt($"{Index}: {message}");
+                                            if (message.StartsWith("version:"))
                                             {
-                                                for (int i = 1; i < status.Length; ++i)
+                                                VersionInfo = message.Replace("version: ", "");
+                                                continue;
+                                            }
+                                            if (/*message.Length==34 && message.StartsWith("I,") && */String.Compare(smsg, message, true) != 0)
+                                            {
+                                                logIt($"{Index}: {message}");
+                                                smsg = message;
+                                                string[] status = message.Split(',');
+                                                if (status[0] == "I")
                                                 {
-                                                    keys[i - 1] = status[i] == "1";
+                                                    lock (keys)
+                                                    {
+                                                        for (int i = 1; i < status.Length; ++i)
+                                                        {
+                                                            keys[i - 1] = status[i] == "1";
+                                                        }
+                                                        mDataEvent.Set();
+                                                    }
                                                 }
-                                                mDataEvent.Set();
                                             }
                                         }
+                                        continue;
                                     }
+                                    if (dd == 0)
+                                    {
+                                        llb.Clear();
+                                        continue;
+                                    }
+                                    llb.Add(dd);
                                 }
-                                continue;
+                                ms.SetLength(0);
+                                if (llb.Count() > 0)
+                                {
+                                    ms.Write(llb.ToArray(), 0, llb.Count);
+                                    llb.Clear();
+                                }
                             }
-                            if (dd == 0)
-                            {
-                                llb.Clear();
-                                continue;
-                            }
-                            llb.Add(dd);
                         }
-                        ms.SetLength(0);
-                        if (llb.Count() > 0)
+                        catch (Exception e)
                         {
-                            ms.Write(llb.ToArray(), 0, llb.Count);
-                            llb.Clear();
+                            logIt(e.ToString());
+                            iRetry++;
                         }
+
+                        if (iRetry > 10) break;
                     }
                 }
-                catch (Exception e) {
-                    logIt(e.ToString());
-                    iRetry ++;
+                finally
+                {
+                    Monitor.Exit(_myLockRead);
                 }
-
-                if (iRetry > 10) break;
             }
+            else
+            {
+                logIt("Thread ReadDataThread has running.");
+                return;
+            }
+            
             if (mStopEvent.WaitOne(5))
             {
-               // mStopEvent.Reset();
+                // mStopEvent.Reset();
                 Close();
             }
+            logIt("ReadThread--");
         }
     }
 }
