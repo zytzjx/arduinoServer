@@ -58,3 +58,18 @@ return json
 Add
 TCP Server will receive Key Clicked.
 'pressed:{label}\r\n'    server will receive key sequence.
+
+
+http://localhost:3420/version
+Get Fixture Version
+return Json
+
+
+http://localhost:3420/serialstatus
+Get Serial Ports Status
+return Json
+
+
+http://localhost:3420/querycallback
+Get Register callback
+return Json

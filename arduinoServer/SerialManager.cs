@@ -199,17 +199,25 @@ namespace arduinoServer
 
             List<string> sComsConfig = ((Object[])config["serialports"]).Select(i => i.ToString()).ToList();//GetColorSensorPorts();
             Program.logIt($"Config file include:{String.Join(", ", sComsConfig.ToArray())}");
+
             List<string> sComsPC = GetColorSensorPorts();
             Program.logIt($"System Exists include:{String.Join(", ", sComsPC.ToArray())}");
+
             List<String> sComs = sComsConfig.Intersect(sComsPC).ToList();
             Program.logIt($"serial coms count {sComs.Count}");
-            if (config.ContainsKey("serialports"))
+
+            if (sComsConfig.Count == 1 && sComsPC.Count == 1)
             {
-                if (((Object[])config["serialports"]).Length > 1)
-                {
-                    sComs = ((Object[])config["serialports"]).Cast<String>().ToList();
-                }
+                Program.logIt($"using pc list serial port, because config 1 com.");
+                sComs = sComsPC;
             }
+            //if (config.ContainsKey("serialports"))
+            //{
+            //    if (((Object[])config["serialports"]).Length > 1)
+            //    {
+            //        sComs = ((Object[])config["serialports"]).Cast<String>().ToList();
+            //    }
+            //}
             
             int index = 0;
             for (int i = 0; i< sComs.Count; i++){
@@ -372,6 +380,11 @@ namespace arduinoServer
                     }
 
                 }
+                Thread.Sleep(50);
+            }
+            for (int i = 0; i < GroupCnt * MAX_Groupt; i++)
+            {
+                status_leds[i] = new RGB(0, 0, 0);
             }
             return bret;
         }

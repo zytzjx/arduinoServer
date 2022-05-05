@@ -113,12 +113,6 @@ namespace arduinoServer
             return ret;
         }
 
-        //public void OpenThread()
-        //{
-        //    Thread.Sleep(1000);
-        //    Thread thread1 = new Thread(ReadThread);
-        //    thread1.Start();
-        //}
 
         public bool Open(String serialPort, Boolean bCreateThead = true)
         {
