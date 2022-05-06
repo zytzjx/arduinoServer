@@ -15,8 +15,11 @@ setting callback , xxxx TCP Server Listen Port.
 http://localhost:3420/rmcallback?port=XXXX
 remove callback , xxxx TCP Server Listen Port.
 
-TCP Server will receive Key Clicked.
+TCP Server will receive Key Clicked. 1->0
 'release:{label}\r\n'    server will receive key squance.
+
+TCP Server will receive Key Pressed. 0->1
+'pressed:{label}\r\n'    server will receive key squance.
 
 if TCP Server shutdown , retry connect or remove by settings config.
 

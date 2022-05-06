@@ -1,4 +1,6 @@
 // (c) Michael Schoeffler 2017, http://www.mschoeffler.de
+// LED all light time is 5 ms
+
 #define FASTLED_INTERNAL
 #include <FastLED.h>
 
@@ -14,6 +16,7 @@
 //#define COLOR_ORDER GRB
 
 #define BRIGHTNESS 128
+#define BRIGHTNESS_SAVE 32
 
 #define DATA_PIN_STATUS 5 // Strip Control, CUP IO
 #define NUM_LEDS 144      // Strip Led Count
@@ -49,7 +52,7 @@ struct RGB leds_status_bak[NUM_LEDS_STATUS]; // Backup single LED status
 // strandtest example for more information on possible values.
 Adafruit_NeoPixel pixels(NUM_LEDS_STATUS, DATA_PIN_STATUS, NEO_GRB + NEO_KHZ800);
 
-#define VERSION "version: 2.0.1"
+#define VERSION "version: 2.0.2"
 /// 1.0.1 #5707 requirement
 
   
@@ -113,7 +116,7 @@ void setup()
     }
     delay(1000);
     FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
-    FastLED.setBrightness(BRIGHTNESS);
+    FastLED.setBrightness(BRIGHTNESS_SAVE);
 
 #if defined(__AVR_ATtiny85__) && (F_CPU == 16000000)
     clock_prescale_set(clock_div_1);
@@ -121,41 +124,22 @@ void setup()
     // END of Trinket-specific code.
 
     pixels.begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
-    pixels.setBrightness(BRIGHTNESS);
+    pixels.setBrightness(BRIGHTNESS_SAVE);
 
+    //unsigned long myTime = millis();
     LEDStrip(1, true);
     LEDStatus(1, true);
-    for (int ll = 0; ll < 5; ll++)
+    //Serial.println( millis() - myTime);
+    for (int ll = 0; ll < 4; ll++)
     {
         delay(1000);
-    }
+    }  
     LEDStrip(0, true);
     LEDStatus(0, true);
+    FastLED.setBrightness(BRIGHTNESS);
+    pixels.setBrightness(BRIGHTNESS);
+    
 }
-
-// // switches off all LEDs
-// void showProgramCleanUp(long delayTime)
-// {
-//     for (int i = 0; i < NUM_LEDS; ++i)
-//     {
-//         leds[i] = CRGB::Black;
-//         leds_bak[i] = {0, 0, 0};
-//     }
-//     FastLED.show();
-//     delay(delayTime);
-// }
-
-// // switches off all status LEDs
-// void showPhoneStatusCleanUp(long delayTime)
-// {
-//     for (int i = 0; i < NUM_LEDS_STATUS; i++)
-//     {
-//         pixels.setPixelColor(i, pixels.Color(0, 0, 0));
-//         leds_status_bak[i] = {0, 0, 0};
-//     }
-//     pixels.show(); // Send the updated pixel colors to the hardware.
-//     delay(delayTime);
-// }
 
 void showPhoneLeds(int index, long delayTime, bool show)
 {
@@ -324,15 +308,11 @@ void loop()
         {
             LEDStrip(0, gDebugMode == Normal);
             LEDStatus(0, gDebugMode == Normal);
-            // showProgramCleanUp(0);
-            // showPhoneStatusCleanUp(0);
         }
         else if (incomingByte == 'L')
         {
             LEDStrip(1, gDebugMode == Normal);
             LEDStatus(1, gDebugMode == Normal);
-            // showProgramCleanUp(0);
-            // showPhoneStatusCleanUp(0);
         }
     }
     else
