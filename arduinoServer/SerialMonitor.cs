@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
 using System.IO;
+using arduinoServer.Properties;
 
 namespace arduinoServer
 {
@@ -130,7 +131,7 @@ namespace arduinoServer
                     mSerialPort.DataBits = 8;
                     mSerialPort.Handshake = Handshake.None;
                     mSerialPort.RtsEnable = true;
-                    mSerialPort.DtrEnable = true;
+                    mSerialPort.DtrEnable = Settings.Default.LIGHTLED;
                     mSerialPort.ReadTimeout = 1000;
                     mSerialPort.WriteTimeout = 1000;
                     mSerialPort.Open();

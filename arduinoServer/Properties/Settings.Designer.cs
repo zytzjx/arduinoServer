@@ -12,7 +12,7 @@ namespace arduinoServer.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "16.7.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "15.9.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -43,19 +43,10 @@ namespace arduinoServer.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("{\"portlabel\": [ 1, 2, 3, 4, 5, 6,7,8 ]}")]
-        public string PORTLABELS {
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool LIGHTLED {
             get {
-                return ((string)(this["PORTLABELS"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("{\"stripindexs\": [ 1, 16, 30, 45, 60, 74, 89, 104 ]}")]
-        public string STRIPINDEX {
-            get {
-                return ((string)(this["STRIPINDEX"]));
+                return ((bool)(this["LIGHTLED"]));
             }
         }
     }

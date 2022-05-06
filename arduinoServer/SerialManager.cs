@@ -41,7 +41,7 @@ namespace arduinoServer
 
         private Dictionary<int, TcpClient> callbacklist = new Dictionary<int, TcpClient>();
 
-        private int oldStripSelect = 0;
+        //private int oldStripSelect = 0;
         public List<string> GetColorSensorPorts()
         {
             List<string> l = new List<string>();
@@ -185,14 +185,14 @@ namespace arduinoServer
             var serializer = new JavaScriptSerializer();
             config = (Dictionary<String, Object>)serializer.DeserializeObject(s);
 
-            var seriportLabels = new JavaScriptSerializer();
-            var portlabels = (Dictionary<String, Object>)serializer.DeserializeObject(Settings.Default.PORTLABELS);
+            //var seriportLabels = new JavaScriptSerializer();
+            //var portlabels = (Dictionary<String, Object>)serializer.DeserializeObject(Settings.Default.PORTLABELS);
 
-            var seri = new JavaScriptSerializer();
-            var StripIndex = (Dictionary<String, Object>)serializer.DeserializeObject(Settings.Default.STRIPINDEX);
+            //var seri = new JavaScriptSerializer();
+            //var StripIndex = (Dictionary<String, Object>)serializer.DeserializeObject(Settings.Default.STRIPINDEX);
 
-            config["portlabel"] = portlabels["portlabel"];
-            config["stripindexs"] = StripIndex["stripindexs"];
+            //config["portlabel"] = portlabels["portlabel"];
+            //config["stripindexs"] = StripIndex["stripindexs"];
 
             //GroupCnt = (((Object[])config["portlabel"]).ToArray(typeof(int))).Length;
             GroupCnt = ((Object[])config["portlabel"]).Cast<int>().ToArray().Length;
@@ -229,11 +229,17 @@ namespace arduinoServer
 
                     Program.logIt($"{sComName} opening");
                     int iretry = 5;
+                    
                     while (!sertmp.Open(sComName))
                     {
                         Thread.Sleep(1000);
                         if (iretry-- < 0) break;
                     }
+                    //if (!Settings.Default.LIGHTLED)
+                    //{
+                    //    sertmp.SendData("N\r");
+                    //    sertmp.SendData("N\r");
+                    //}
                     serials.Add(sertmp);
                     waitHandles.Add(sertmp.mDataEvent);
                 }
@@ -348,6 +354,8 @@ namespace arduinoServer
                     }
                     Thread.Sleep(200);
                     ret[index++] = ser.VersionInfo;
+                    ret[index++] = "333";
+                    ret[index++] = "444";
                 }
                 catch (Exception)
                 {
@@ -358,10 +366,41 @@ namespace arduinoServer
             return ret;
         }
 
+        public bool ledsOn()
+        {
+            bool bret = true;
+            Thread.Sleep(500);
+            for (int i = 0; i < 2; i++)
+            {
+                foreach (var ser in serials)
+                {
+                    try
+                    {
+                        if (!ser.SendData("L\r"))
+                        {
+                            bret = false;
+                            Program.logIt("cleanup failed");
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        Program.logIt("cleanup failed exception");
+                    }
+
+                }
+                Thread.Sleep(50);
+            }
+            for (int i = 0; i < GroupCnt * MAX_Groupt; i++)
+            {
+                status_leds[i] = new RGB(255, 255, 255);
+            }
+            return bret;
+        }
+
         public bool Cleanup()
         {
             bool bret = true;
-            Thread.Sleep(1000);
+            Thread.Sleep(500);
             for (int i = 0; i < 2; i++)
             {
                 foreach (var ser in serials)
@@ -457,7 +496,11 @@ namespace arduinoServer
             {
                bret= SendStatusLED(sendLed);
             }
-            else
+            else if (String.Compare(sendLed["status"].ToString(), "test", true) == 0)
+            {
+                bret = SendTestLed(sendLed);
+            }
+            else 
             {
                 bret = SendStrip(sendLed);
             }
@@ -466,6 +509,37 @@ namespace arduinoServer
             sss["result"] = bret;
 
             return sss;
+        }
+
+        bool SendTestLed(Dictionary<String, Object> inpt)
+        {
+            bool bret = false;
+            int label = Convert.ToInt32(inpt["label"]) - 1;
+
+            int gg = label / GroupCnt;
+            int ggmod = label % GroupCnt;
+            Program.logIt($"SendTestLed++ {gg}:{ggmod}");
+
+            int[] ledindexs = ((Object[])config["stripindexs"]).Cast<int>().ToArray();
+
+            Object[] colors = (Object[])inpt["colors"];
+            if (colors.Length == 0)
+            {
+                return bret;
+            }
+
+            if (gg < MAX_Groupt)
+            {
+                string ss = "";
+                var clr = colors[0];
+                int[] rgb = ((Object[])clr).Cast<int>().ToArray();
+                ss += $"{rgb[0]},{rgb[1]},{rgb[2]},";
+
+                bret = serials[gg].SendData($"T{ledindexs[ggmod]},{ggmod},{ss}\r");
+                
+            }
+
+            return bret;
         }
 
         bool SendStatusLED(Dictionary<String, Object> inpt)
@@ -528,15 +602,15 @@ namespace arduinoServer
             Object[] colors = (Object[])inpt["colors"];
             if (gg < MAX_Groupt)
             {
-                if(oldStripSelect != gg)
-                {
-                    serials[oldStripSelect].SendData($"A0,0\r");
-                    oldStripSelect = gg;
-                }
-                for (int i = 0; i < gg; i++)
-                {
-                    //serials[i].SendData($"A0,0\r");
-                }
+                //if(oldStripSelect != gg)  //why A0,0, Protocal no support.
+                //{
+                //    serials[oldStripSelect].SendData($"A0,0\r");
+                //    oldStripSelect = gg;
+                //}
+                //for (int i = 0; i < gg; i++)
+                //{
+                //    //serials[i].SendData($"A0,0\r");
+                //}
                 string ss = "";
                 foreach(var clr  in colors)
                 {
@@ -544,10 +618,10 @@ namespace arduinoServer
                     ss += $"{rgb[0]},{rgb[1]},{rgb[2]},";
                 }
                 bret = serials[gg].SendData($"A{ledindexs[ggmod]},{colors.Length},{ss}\r");
-                for (int i = gg+1; i < MAX_Groupt; i++)
-                {
-                   //serials[i].SendData($"A0,0\r");
-                }
+                //for (int i = gg+1; i < MAX_Groupt; i++)
+                //{
+                //   //serials[i].SendData($"A0,0\r");
+                //}
             }
             return bret;
         }

@@ -38,6 +38,10 @@ namespace arduinoServer
         Stream cleanup();
 
         [OperationContract]
+        [WebGet(UriTemplate = "/ledsOn")]
+        Stream ledsOn();
+
+        [OperationContract]
         [WebGet(UriTemplate = "/count")]
         Stream serialcount();
 
@@ -85,7 +89,7 @@ namespace arduinoServer
         {
             Dictionary<int, string> retdata = Program.SerialManager.HWVersion();
 
-            Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes(intobjecttoString(retdata)));
+            Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes(intstringmaptoString(retdata)));
 
             return ret;
         }
@@ -125,15 +129,38 @@ namespace arduinoServer
             Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes(objectToString(retdata)));
             return ret;
         }
-
+        string intstringmaptoString(object o)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("{");
+            Dictionary<int, string> bid = (Dictionary<int, string>)o;
+            int count = bid.Count-1;
+            foreach (var sd in bid)
+            {
+                sb.Append($"\"{sd.Key}\":\"{sd.Value}\"");
+                if (count > 0)
+                {
+                    sb.Append(",");
+                }
+                count--;
+            }
+            sb.Append("}");
+            return sb.ToString();
+        }
         string intobjecttoString(object o)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("{");
             Dictionary<int, bool> bid = (Dictionary<int, bool>)o;
-            foreach(var sd  in bid)
+            int count = bid.Count - 1;
+            foreach (var sd  in bid)
             {
-                sb.AppendLine($"\"{sd.Key}\":{sd.Value}");
+                sb.Append($"\"{sd.Key}\":{sd.Value.ToString().ToLower()}");
+                if (count > 0)
+                {
+                    sb.Append(",");
+                }
+                count--;
             }
             sb.Append("}");
             return sb.ToString();
@@ -149,6 +176,15 @@ namespace arduinoServer
         public Stream cleanup()
         {
             Boolean b = Program.SerialManager.Cleanup();
+            Dictionary<String, bool> aa = new Dictionary<string, bool>();
+            aa["result"] = b;
+            Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes(objectToString(aa)));
+            return ret;
+        }
+
+        public Stream ledsOn()
+        {
+            Boolean b = Program.SerialManager.ledsOn();
             Dictionary<String, bool> aa = new Dictionary<string, bool>();
             aa["result"] = b;
             Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes(objectToString(aa)));

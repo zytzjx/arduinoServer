@@ -25,6 +25,14 @@
 #define MAX_PHONE_GROUP 16 // MAX SUPPORT 16 PORTS
 int keys[MAX_PHONE_GROUP] = {6, 7, 8, 9, 10, 11, 12, 13, 2, 4, A0, A1, A2, A3, A4, A5};
 
+
+bool bShow = false;
+bool bShowing = false;
+bool bCancel = false;
+unsigned long  lightStarttime=0;
+unsigned long  lightInterval=5000;
+bool bRecvN = false;
+
 enum MODE
 {
     Normal,
@@ -105,9 +113,39 @@ void LEDStatus(int onoff, bool show, bool rcord=true)
     }
 }
 
+void ShowAllLedLight(){
+  if (bShow && !bShowing){
+    bShowing = true;
+    FastLED.setBrightness(BRIGHTNESS_SAVE);
+    pixels.setBrightness(BRIGHTNESS_SAVE);
+    LEDStrip(1, true);
+    LEDStatus(1, true);
+    bShow = false;
+    lightStarttime = millis();
+  }
+  if (bShowing && bCancel){
+      bShowing = false;
+      LEDStrip(0, true);
+      LEDStatus(0, true);
+  }
+  
+  if (millis()  > lightInterval + lightStarttime){
+    if (bShowing){
+      bShowing = false;
+      LEDStrip(0, true);
+      LEDStatus(0, true);
+      FastLED.setBrightness(BRIGHTNESS);
+      pixels.setBrightness(BRIGHTNESS);
+    }
+  }
+}
+
 void setup()
 {
     Serial.begin(9600);
+    while (!Serial) {
+      ; // wait for serial port to connect. Needed for native USB
+    }
     Serial.println(F("Smart-Receiving"));
     Serial.println(F(VERSION));
     for (int i = 0; i < MAX_PHONE_GROUP; ++i)
@@ -125,7 +163,7 @@ void setup()
 
     pixels.begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
     pixels.setBrightness(BRIGHTNESS_SAVE);
-
+/*
     //unsigned long myTime = millis();
     LEDStrip(1, true);
     LEDStatus(1, true);
@@ -138,7 +176,8 @@ void setup()
     LEDStatus(0, true);
     FastLED.setBrightness(BRIGHTNESS);
     pixels.setBrightness(BRIGHTNESS);
-    
+*/
+    lightStarttime = millis();
 }
 
 void showPhoneLeds(int index, long delayTime, bool show)
@@ -177,6 +216,47 @@ void setPhoneLeds(int index)
         }
     }
 }
+
+void setPhoneLeds_testCmd(int index)
+{
+    if (index < NUM_LEDS)
+    {
+        for (int i = 0; i < NUM_LEDS;i++)
+        { 
+            leds_bak[i] = {
+                0,
+                0,
+                0,
+            };
+        }
+        for (int j = 0; j <PHONELEDCNT; j++){ 
+           leds_bak[j+index]= serialleds[0];
+        }
+          
+    }
+}
+
+void showPhoneLedsStatus_testCmd(int index){
+  for (int i = 0; i < NUM_LEDS_STATUS; i++){
+    
+    leds_status_bak[i] = {
+                0,
+                0,
+                0,
+            };
+  }
+  if (index <NUM_LEDS_STATUS) 
+    leds_status_bak[index] = serialleds[0];
+}
+
+void TestCmd(int stripeindex, int stdex)
+{
+   setPhoneLeds_testCmd(stripeindex);
+   showPhoneLedsStatus_testCmd(stdex);
+   RestoreStripLeds();
+   RestoreStatusLeds();
+}
+
 
 // Debug Mode to Normal Mode Restore status
 void RestoreStripLeds()
@@ -223,6 +303,7 @@ void showPhoneLedsStatus(long delayTime, bool show)//int index,
     }
 }
 
+
 void loop()
 {
     int incomingByte = 0;
@@ -252,6 +333,16 @@ void loop()
             if (clrindex == phoneclrcnt)
                 bRecv = true;
         }
+        else if (incomingByte == 'T')
+        {
+            index = Serial.parseInt(); //strip index
+            phoneclrcnt = Serial.parseInt();//this is status index
+           
+            serialleds[0].r = Serial.parseInt();
+            serialleds[0].g = Serial.parseInt();
+            serialleds[0].b = Serial.parseInt();
+            bRecv = true;
+        }
         else if (incomingByte == 'C' || incomingByte == 'L')
         {
             bRecv = true;
@@ -263,8 +354,19 @@ void loop()
         else if (incomingByte == 'V')
         {
             Serial.println(VERSION);
+        }else if (incomingByte == 'N'){
+            bRecvN = true;
         }
     }
+
+
+    if(millis() > lightStarttime + 400){
+        if (!bRecvN){
+           bShow = true;
+           bRecvN = true;
+        }
+    }
+    ShowAllLedLight();
     ///*
     Serial.print("I,");
     for (int i = 0; i < MAX_PHONE_GROUP; ++i)
@@ -313,6 +415,8 @@ void loop()
         {
             LEDStrip(1, gDebugMode == Normal);
             LEDStatus(1, gDebugMode == Normal);
+        }else if (incomingByte == 'T'){
+            TestCmd(index, phoneclrcnt);
         }
     }
     else
