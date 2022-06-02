@@ -4,19 +4,19 @@ this is web service for Arduino HardWare comunication. Its functions include get
 all of request or response data format is JSON.
 
 ### API List   
-|index| function      | URL | Description |
-| --- | ----------- |---- | ----------- |
-|1|   get button status    | http://localhost:3420/getkeys |       |
-|2|  some label button status     | http://localhost:3420/getkey?id=XXX |       |
-|3|  callback     | http://localhost:3420/callback?port=XXXX |  xxxx Server Listen port     |
-|4|  remove callback     | http://localhost:3420/rmcallback?port=XXXX |       |
-|5|  Post     | http://localhost:3420/leds |  Set LED Color, Only this is POST    |
-|6|   cleanup    | http://localhost:3420/cleanup |  clear all fixture     |
-|7| set fixture on     | http://localhost:3420/ledson |    all fixture LED ON    |
-|8|  Serial count     | http://localhost:3420/count |   get Opened serial port    |
-|9|   get Fixture version    | http://localhost:3420/version |  get version     |
-|10|   get Serail status    | http://localhost:3420/serialstatus |       |
-|11|  Query Back List     | http://localhost:3420/querycallback |   Query register Callback    |
+|index|Method| function      | URL | Description |
+| --- |---| ----------- |---- | ----------- |
+|1|GET|   get button status    | http://localhost:3420/getkeys |       |
+|2|GET|  some label button status     | http://localhost:3420/getkey?id=XXX |       |
+|3|GET|  callback     | http://localhost:3420/callback?port=XXXX |  xxxx Server Listen port     |
+|4|GET|  remove callback     | http://localhost:3420/rmcallback?port=XXXX |       |
+|5|POST|  Post LEDS Status    | http://localhost:3420/leds |  Set LED Color, Only this is POST    |
+|6|GET|   cleanup    | http://localhost:3420/cleanup |  clear all fixture     |
+|7|GET| set fixture on     | http://localhost:3420/ledson |    all fixture LED ON    |
+|8|GET|  Serial count     | http://localhost:3420/count |   get Opened serial port    |
+|9|GET|   get Fixture version    | http://localhost:3420/version |  get version     |
+|10|GET|   get Serail status    | http://localhost:3420/serialstatus |       |
+|11|GET|  Query Back List     | http://localhost:3420/querycallback |   Query register Callback    |
 
 
 Get:  

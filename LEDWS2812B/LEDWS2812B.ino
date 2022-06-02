@@ -9,7 +9,7 @@
 #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
 #endif
 
-#define DATA_PIN 3        // Single LED, Status Led. CPU IO
+#define DATA_PIN 5 ////3        // Single LED, Status Led. CPU IO
 #define NUM_LEDS_STATUS 10 // Status LED Count, it is same as Fixture support count.
 
 #define LED_TYPE WS2812B
@@ -18,13 +18,13 @@
 #define BRIGHTNESS 128
 #define BRIGHTNESS_SAVE 32
 
-#define DATA_PIN_STATUS 5 // Strip Control, CUP IO
+#define DATA_PIN_STATUS 3 ///5 // Strip Control, CUP IO
 #define NUM_LEDS 144      // Strip Led Count
 #define PHONELEDCNT 8     // Every Port LED NUMBER
 
 #define MAX_PHONE_GROUP 16 // MAX SUPPORT 16 PORTS
 int keys[MAX_PHONE_GROUP] = {6, 7, 8, 9, 10, 11, 12, 13, 2, 4, A0, A1, A2, A3, A4, A5};
-
+int stripLedIndex[NUM_LEDS_STATUS]={1,16,30,45,60,74,89,103,118,133};
 
 bool bShow = false;
 bool bShowing = false;
@@ -60,9 +60,12 @@ struct RGB leds_status_bak[NUM_LEDS_STATUS]; // Backup single LED status
 // strandtest example for more information on possible values.
 Adafruit_NeoPixel pixels(NUM_LEDS_STATUS, DATA_PIN_STATUS, NEO_GRB + NEO_KHZ800);
 
-#define VERSION "version: 2.0.2"
+#define VERSION "version: 2.0.16"
 /// 1.0.1 #5707 requirement
 
+
+int Btn[MAX_PHONE_GROUP]={0};
+bool startTestMode=false;
   
 bool digitalReadA7()
 {
@@ -152,7 +155,7 @@ void setup()
     {
         pinMode(keys[i], INPUT);
     }
-    delay(1000);
+    //delay(1000);
     FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
     FastLED.setBrightness(BRIGHTNESS_SAVE);
 
@@ -178,6 +181,12 @@ void setup()
     pixels.setBrightness(BRIGHTNESS);
 */
     lightStarttime = millis();
+    startTestMode = digitalReadA7();
+    /*if (startTestMode) {
+      bShow = true;
+      bRecvN = true;
+      lightInterval = 1000;
+    }*/
 }
 
 void showPhoneLeds(int index, long delayTime, bool show)
@@ -303,9 +312,58 @@ void showPhoneLedsStatus(long delayTime, bool show)//int index,
     }
 }
 
+void setStripLedTest(int index, CRGB rgb)
+{
+  for(int i=index;i<index+PHONELEDCNT+7;i++)
+  {
+      if (i<index+PHONELEDCNT)
+      {
+        leds[i] = rgb;
+      }else{
+        leds[i] = CRGB(0, 0, 0);
+      }
+  }
+}
+
+void TestModeLight()
+{
+    leds[0] = CRGB(0, 0, 0);
+    for (int i = 0; i < NUM_LEDS_STATUS; i++)
+    {
+        if (Btn[i] == 1 )
+        {
+            pixels.setPixelColor(i, pixels.Color(128, 128, 128));
+            //leds[i] = CRGB(128, 128, 128);
+            setStripLedTest(stripLedIndex[i], CRGB(128, 128, 128));
+        }
+        else
+        {
+            pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+            setStripLedTest(stripLedIndex[i], CRGB(0, 0, 0));        
+        }
+    }
+
+    pixels.show(); // Send the updated pixel colors to the hardware.
+    FastLED.show();
+}
+
+void TestMode()
+{
+  for (int i = 0; i < MAX_PHONE_GROUP; ++i)
+  {
+    Btn[i]=digitalRead(keys[i]);
+  }
+  TestModeLight();
+}
+
 
 void loop()
 {
+    if (startTestMode && digitalReadA7())
+    {
+      TestMode();
+      return; 
+    }
     int incomingByte = 0;
     int index = 0;
     int clrindex = 0;
