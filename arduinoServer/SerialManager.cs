@@ -1,6 +1,7 @@
 ﻿using arduinoServer.Properties;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Management;
 using System.Net.Sockets;
@@ -31,10 +32,12 @@ namespace arduinoServer
         public Dictionary<int, bool> buttonstatus = new Dictionary<int, bool>();
         private List<SerialMonitor> serials = new List<SerialMonitor>();
         private List<EventWaitHandle> waitHandles = new List<EventWaitHandle>();
-        private Dictionary<String, Object> config = new Dictionary<string, object>();
+        //private Dictionary<String, Object> config = new Dictionary<string, object>();
+        private Config config = new Config();
         private EventWaitHandle mStopEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
-        private int GroupCnt = 0;
+        //private int GroupCnt = 0;
         private int MAX_Groupt = 0;
+        private int CONFIG_MAX_LABEL = 0;
         RGB[] status_leds;
 
         private bool FinishInit = false;
@@ -181,9 +184,10 @@ namespace arduinoServer
 
         public void Init()
         {
-            String s = System.IO.File.ReadAllText(System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Serialconfig.json"));
-            var serializer = new JavaScriptSerializer();
-            config = (Dictionary<String, Object>)serializer.DeserializeObject(s);
+            //String s = System.IO.File.ReadAllText(System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Serialconfig.json"));
+            //var serializer = new JavaScriptSerializer();
+            //config = (Dictionary<String, Object>)serializer.DeserializeObject(s);
+            config.LoadConfigFile(System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Serialconfig.json"));
 
             //var seriportLabels = new JavaScriptSerializer();
             //var portlabels = (Dictionary<String, Object>)serializer.DeserializeObject(Settings.Default.PORTLABELS);
@@ -194,10 +198,11 @@ namespace arduinoServer
             //config["portlabel"] = portlabels["portlabel"];
             //config["stripindexs"] = StripIndex["stripindexs"];
 
-            //GroupCnt = (((Object[])config["portlabel"]).ToArray(typeof(int))).Length;
-            GroupCnt = ((Object[])config["portlabel"]).Cast<int>().ToArray().Length;
 
-            List<string> sComsConfig = ((Object[])config["serialports"]).Select(i => i.ToString()).ToList();//GetColorSensorPorts();
+            ///GroupCnt = ((Object[])config["portlabel"]).Cast<int>().ToArray().Length;
+
+            ///List<string> sComsConfig = ((Object[])config["serialports"]).Select(i => i.ToString()).ToList();//GetColorSensorPorts();
+            List<string> sComsConfig = config.GetComList();
             Program.logIt($"Config file include:{String.Join(", ", sComsConfig.ToArray())}");
 
             List<string> sComsPC = GetColorSensorPorts();
@@ -224,8 +229,11 @@ namespace arduinoServer
                 String sComName = sComs[i];
 
                 {
-                    SerialMonitor sertmp = new SerialMonitor();
-                    sertmp.Index = index++;
+                    SerialMonitor sertmp = new SerialMonitor()
+                    {
+                        Index = index++
+                    };
+
 
                     Program.logIt($"{sComName} opening");
                     int iretry = 5;
@@ -246,9 +254,9 @@ namespace arduinoServer
             }
 
             MAX_Groupt = serials.Count();
-
-            status_leds = new RGB[GroupCnt * MAX_Groupt];
-            for(int i = 0; i < GroupCnt * MAX_Groupt; i++)
+            CONFIG_MAX_LABEL = config.LabelCount;//GroupCnt * MAX_Groupt
+            status_leds = new RGB[CONFIG_MAX_LABEL];
+            for(int i = 0; i < CONFIG_MAX_LABEL; i++)
             {
                 status_leds[i] = new RGB(0, 0, 0);
             }
@@ -293,8 +301,8 @@ namespace arduinoServer
         {
             Dictionary<int, bool> bstatus = new Dictionary<int, bool>();
             sertmp.CopyKeys(bstatus);
-            int[] plabels= ((Object[])config["portlabel"]).Cast<int>().ToArray();
-            int nLabelStart = sertmp.Index * plabels.Length;
+            int[] plabels = config.CurLabels(sertmp.Index).ToArray();///((Object[])config["portlabel"]).Cast<int>().ToArray();
+            int nLabelStart = config.GetLessCurlabels(sertmp.Index);///sertmp.Index * plabels.Length;
             lock (buttonstatus)
             {
                 for(int i = 0; i < plabels.Length; i++)
@@ -390,7 +398,7 @@ namespace arduinoServer
                 }
                 Thread.Sleep(50);
             }
-            for (int i = 0; i < GroupCnt * MAX_Groupt; i++)
+            for (int i = 0; i < CONFIG_MAX_LABEL; i++)
             {
                 status_leds[i] = new RGB(255, 255, 255);
             }
@@ -421,7 +429,7 @@ namespace arduinoServer
                 }
                 Thread.Sleep(50);
             }
-            for (int i = 0; i < GroupCnt * MAX_Groupt; i++)
+            for (int i = 0; i < CONFIG_MAX_LABEL; i++)
             {
                 status_leds[i] = new RGB(0, 0, 0);
             }
@@ -459,10 +467,11 @@ namespace arduinoServer
             Dictionary<int, bool> ret = new Dictionary<int, bool>();
             foreach (var ser in serials)
             {
-                if (ser.Index * GroupCnt <= id && id < (ser.Index + 1))
+                //if (ser.Index * GroupCnt <= id && id < (ser.Index + 1))
+                if (config.GetLessCurlabels(ser.Index) <= id && id < config.GetLessCurlabels(ser.Index+1))
                 {
                     Dictionary<int, bool> temp = new Dictionary<int, bool>();
-                    ser.CopyLabelKeys(ret, ((Object[])config["portlabel"]).Cast<int>().ToArray());
+                    ser.CopyLabelKeys(ret, config.CurLabels(ser.Index).ToArray());///((Object[])config["portlabel"]).Cast<int>().ToArray());
                     break;
                 }
             }
@@ -477,8 +486,8 @@ namespace arduinoServer
             foreach (var ser in serials)
             {
                 Dictionary<int, bool> temp = new Dictionary<int, bool>();
-                ser.CopyLabelKeys(temp, ((Object[])config["portlabel"]).Cast<int>().ToArray());
-                foreach(var kk in temp)
+                ser.CopyLabelKeys(temp, config.CurLabels(ser.Index).ToArray());///((Object[])config["portlabel"]).Cast<int>().ToArray());
+                foreach (var kk in temp)
                 {
                     ret[kk.Key] = kk.Value;
                 }
@@ -515,12 +524,12 @@ namespace arduinoServer
         {
             bool bret = false;
             int label = Convert.ToInt32(inpt["label"]) - 1;
-
-            int gg = label / GroupCnt;
-            int ggmod = label % GroupCnt;
+            var gm = config.GetFixtureIndexFromLabel(label);
+            int gg = gm.Item1;///label / GroupCnt;
+            int ggmod = gm.Item2;/// label % GroupCnt;
             Program.logIt($"SendTestLed++ {gg}:{ggmod}");
 
-            int[] ledindexs = ((Object[])config["stripindexs"]).Cast<int>().ToArray();
+            int[] ledindexs = config.CurStripIndex(gg).ToArray();///((Object[])config["stripindexs"]).Cast<int>().ToArray();
 
             Object[] colors = (Object[])inpt["colors"];
             if (colors.Length == 0)
@@ -541,7 +550,11 @@ namespace arduinoServer
 
             return bret;
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="inpt"></param>
+        /// <returns></returns>
         bool SendStatusLED(Dictionary<String, Object> inpt)
         {
             bool bret = false;
@@ -563,26 +576,28 @@ namespace arduinoServer
                 status_leds[ll] = rgb; 
             }
 
-            for(int i = 0; i < MAX_Groupt; i++)
+            for(int i = 0; i < config.Count; /*MAX_Groupt;*/ i++)
             {
                 bool bFind = false;
-                for(int j=i*GroupCnt;j<(i+1)*GroupCnt; j++)
+                int n = config.GetLessCurlabels(i);
+                for (int j= 0; /*i*GroupCnt;*/ j < config.CurLabels(i).Count; /*(i+1)*GroupCnt;*/ j++)
                 {
-                    if (labelLed.ContainsKey(j))
+                    if (labelLed.ContainsKey(n+j))
                     {
                         bFind = true;
-                        labelLed.Remove(j);
+                        labelLed.Remove(n+j);
                        
                     }
                 }
                 if (bFind)
                 {
                     string ss = "";
-                    for (int j = i * GroupCnt; j < (i + 1) * GroupCnt; j++)
+                    n = config.GetLessCurlabels(i);
+                    for (int j = 0; /*i*GroupCnt;*/ j < config.CurLabels(i).Count; /*(i+1)*GroupCnt;*/ j++)
                     {
-                        ss += status_leds[j].ToString();
+                        ss += status_leds[n+j].ToString();
                     }
-                    bret = serials[i].SendData($"B0,{GroupCnt},{ss}\r");
+                    bret = serials[i].SendData($"B0,{config.CurLabels(i).Count},{ss}\r");
                 }
             }
             return bret;
@@ -592,12 +607,12 @@ namespace arduinoServer
         {
             bool bret = false;
             int label = Convert.ToInt32(inpt["label"]) -1;
-
-            int gg = label / GroupCnt;
-            int ggmod = label % GroupCnt;
+            var gm = config.GetFixtureIndexFromLabel(label);
+            int gg = gm.Item1;///label / GroupCnt;
+            int ggmod = gm.Item2;/// label % GroupCnt;
             Program.logIt($"SendStrip++ {gg}:{ggmod}");
 
-            int[] ledindexs = ((Object[])config["stripindexs"]).Cast<int>().ToArray();
+            int[] ledindexs = config.CurStripIndex(gg).ToArray(); ///((Object[])config["stripindexs"]).Cast<int>().ToArray();
 
             Object[] colors = (Object[])inpt["colors"];
             if (gg < MAX_Groupt)

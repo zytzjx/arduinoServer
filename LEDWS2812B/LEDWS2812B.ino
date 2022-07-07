@@ -9,7 +9,7 @@
 #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
 #endif
 
-#define DATA_PIN 5 ////3        // Single LED, Status Led. CPU IO
+#define DATA_PIN 3        // Single LED, Status Led. CPU IO
 #define NUM_LEDS_STATUS 10 // Status LED Count, it is same as Fixture support count.
 
 #define LED_TYPE WS2812B
@@ -18,7 +18,7 @@
 #define BRIGHTNESS 128
 #define BRIGHTNESS_SAVE 32
 
-#define DATA_PIN_STATUS 3 ///5 // Strip Control, CUP IO
+#define DATA_PIN_STATUS 5 // Strip Control, CUP IO
 #define NUM_LEDS 144      // Strip Led Count
 #define PHONELEDCNT 8     // Every Port LED NUMBER
 
@@ -60,7 +60,7 @@ struct RGB leds_status_bak[NUM_LEDS_STATUS]; // Backup single LED status
 // strandtest example for more information on possible values.
 Adafruit_NeoPixel pixels(NUM_LEDS_STATUS, DATA_PIN_STATUS, NEO_GRB + NEO_KHZ800);
 
-#define VERSION "version: 2.0.16"
+#define VERSION "version: 2.0.3"
 /// 1.0.1 #5707 requirement
 
 

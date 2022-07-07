@@ -22,6 +22,12 @@ namespace arduinoServer
         [MTAThread]
         static void Main(string[] args)
         {
+            //Config config = new Config();
+            //config.LoadConfigFile(@"E:\Works\Arduino\arduinoServer\arduinoServer\Serialconfig.json");
+            //logIt($"{config.LabelCount}");
+            //logIt($"{String.Join(":", config.GetComList())}");
+
+
             System.Configuration.Install.InstallContext _args = new System.Configuration.Install.InstallContext(null, args);
             if (_args.IsParameterTrue("debug"))
             {

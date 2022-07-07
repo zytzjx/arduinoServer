@@ -14,10 +14,10 @@ namespace arduinoServer
     /// </summary>
     public class FixtureConfig
     {
-        public List<int> Portlabels;
+        public List<int> Portlabel;
         public List<int> Stripindexs;
         public List<String> Serialports; 
-        public Dictionary<String, String> Locationpaths;
+        public Dictionary<String, String> Serialindex;
     }
 
     class Config
@@ -26,9 +26,10 @@ namespace arduinoServer
         public void LoadConfigFile(String sFile)
         {
             if (String.IsNullOrEmpty(sFile)||!File.Exists(sFile))
-                sFile = System.IO.File.ReadAllText(System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Serialconfig.json"));
+                sFile = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Serialconfig.json");
+            var sjson = File.ReadAllText(sFile);
             var serializer = new JavaScriptSerializer();
-            FConfigs = (Dictionary<String, FixtureConfig>)serializer.DeserializeObject(sFile);
+            FConfigs = serializer.Deserialize<Dictionary<String, FixtureConfig>>(sjson);
         }
 
         /// <summary>
@@ -51,12 +52,49 @@ namespace arduinoServer
                 int lc = 0;
                 foreach(var fc in FConfigs)
                 {
-                    lc += fc.Value.Portlabels.Count;
+                    lc += fc.Value.Portlabel.Count;
                 }
                 _labelCount = lc;
                 return _labelCount;
             }
         }
+        /// <summary>
+        /// get label
+        /// </summary>
+        /// <param name="index">com index</param>
+        /// <returns>labels</returns>
+        public List<int> CurLabels(int index)
+        {
+            string s = index.ToString();
+            if (FConfigs.ContainsKey(s))
+            {
+                return  FConfigs[s].Portlabel;
+            }
+            else
+            {
+                Program.logIt($"config file error. lost {index}");
+            }
+            return new List<int>();
+        }
+        /// <summary>
+        /// get strip index array
+        /// </summary>
+        /// <param name="index">com index</param>
+        /// <returns>strip index</returns>
+        public List<int> CurStripIndex(int index)
+        {
+            string s = index.ToString();
+            if (FConfigs.ContainsKey(s))
+            {
+                return FConfigs[s].Stripindexs;
+            }
+            else
+            {
+                Program.logIt($"config file error. lost {index}");
+            }
+            return new List<int>();
+        }
+
         /// <summary>
         /// Current Fixture start label
         /// </summary>
@@ -70,7 +108,7 @@ namespace arduinoServer
                 string s = ii.ToString();
                 if (FConfigs.ContainsKey(s))
                 {
-                    ncount += FConfigs[s].Portlabels.Count;
+                    ncount += FConfigs[s].Portlabel.Count;
                 }
                 else
                 {
@@ -92,12 +130,12 @@ namespace arduinoServer
                 string s = i.ToString();
                 if (FConfigs.ContainsKey(s))
                 {
-                    if (labels < FConfigs[s].Portlabels.Count)
+                    if (labels < FConfigs[s].Portlabel.Count)
                     {
                         index = i;
                         break;
                     }
-                    labels -= FConfigs[s].Portlabels.Count;
+                    labels -= FConfigs[s].Portlabel.Count;
                 }
                 else
                 {
