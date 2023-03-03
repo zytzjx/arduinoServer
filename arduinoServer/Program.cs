@@ -26,7 +26,7 @@ namespace arduinoServer
             //config.LoadConfigFile(@"E:\Works\Arduino\arduinoServer\arduinoServer\Serialconfig.json");
             //logIt($"{config.LabelCount}");
             //logIt($"{String.Join(":", config.GetComList())}");
-
+            AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(CurrentDomain_UnhandledException);
 
             System.Configuration.Install.InstallContext _args = new System.Configuration.Install.InstallContext(null, args);
             if (_args.IsParameterTrue("debug"))
@@ -79,9 +79,13 @@ namespace arduinoServer
                 System.Console.WriteLine("-kill-service: to stop the service");
             }
 
+        }
 
-//          SerialManager serialManager = new SerialManager();
-//            serialManager.Init();
+        private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            Exception e1 = (Exception)e.ExceptionObject;
+            logIt("UnhandledException caught : " + e1.Message);
+            logIt($"UnhandledException Runtime terminating: {e.IsTerminating}");
         }
 
         static void start(string[] args, EventWaitHandle eh)

@@ -25,6 +25,34 @@
       133
     ],
     "serialports": [
+      "COM15"
+    ],
+    "serialindex": {
+      "0": "PCIROOT(0)#PCI(1400)#USBROOT(0)#USB(8)"
+    }
+  },
+  "1":{
+    "portlabel": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "stripindexs": [
+      1,
+      16,
+      30,
+      45,
+      60,
+      74,
+      89,
+      103
+    ],
+    "serialports": [
       "COM4"
     ],
     "serialindex": {

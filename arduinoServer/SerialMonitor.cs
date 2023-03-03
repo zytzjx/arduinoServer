@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.IO;
 using arduinoServer.Properties;
+using System.Timers;
 
 namespace arduinoServer
 {
@@ -34,16 +35,16 @@ namespace arduinoServer
         private MemoryStream ms = new MemoryStream();
         private bool bStatus = true;
         private bool bExit = false;
-
+        private System.Timers.Timer aTimer;
         public String VersionInfo = "1.0.0";
-
+       
         public override string ToString()
         {
             return sCom;
         }
 
         public String ComName
-        {
+        {     
             get
             {
                 return sCom;
@@ -114,10 +115,43 @@ namespace arduinoServer
             return ret;
         }
 
+        private void SetTimer()
+        {
+            // Create a timer with a two second interval.
+            if (aTimer == null)
+            {
+                aTimer = new System.Timers.Timer(2000);
+                // Hook up the Elapsed event for the timer. 
+                aTimer.Elapsed += OnTimedEvent;
+                aTimer.AutoReset = true;
+                aTimer.Enabled = true;
+            }
+        }
+        private void ResetTimer()
+        {
+            if (aTimer != null)
+            {
+                aTimer.Stop();
+                aTimer.Start();
+            }
+        }
+
+        private void OnTimedEvent(Object source, ElapsedEventArgs e)
+        {
+            if (mSerialPort != null)
+            {
+                logIt("Detect Fixture No response at {0:HH:mm:ss.fff}, open status: {1}", e.SignalTime, mSerialPort.IsOpen);
+            }
+            else
+            {
+                logIt("mSerialPort is null, {0}", sCom);
+            }
+        }
 
         public bool Open(String serialPort, Boolean bCreateThead = true)
         {
             logIt($"Open++ {serialPort}   {bCreateThead}");
+            SetTimer();
             Close();
             bool result = false;
             if (!string.IsNullOrEmpty(serialPort))
@@ -175,6 +209,7 @@ namespace arduinoServer
             {
                 ms.Write(data, 0, l);
             }
+            ResetTimer();
             mHeartEvent.Set();
         }
 
@@ -211,6 +246,7 @@ namespace arduinoServer
                         }
                         else
                         {
+                            logIt("time out, May be Fixture Dead.");
                             if (null == mSerialPort || !mSerialPort.IsOpen)
                             {
                                 Thread.Sleep(irtry * 500);
