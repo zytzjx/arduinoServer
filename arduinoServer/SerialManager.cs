@@ -407,6 +407,7 @@ namespace arduinoServer
 
         public bool Cleanup()
         {
+            Program.logIt("Cleanup ++");
             bool bret = true;
             Thread.Sleep(500);
             for (int i = 0; i < 2; i++)
@@ -643,6 +644,7 @@ namespace arduinoServer
 
         public void Uninit()
         {
+            Program.logIt("Uninit ++");
             Cleanup();
             mStopEvent.Set();
             lock (serials)
