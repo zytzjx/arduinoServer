@@ -9,6 +9,8 @@ using System.Threading;
 using System.IO;
 using arduinoServer.Properties;
 using System.Timers;
+using System.Text.RegularExpressions;
+using System.Management;
 
 namespace arduinoServer
 {
@@ -22,7 +24,7 @@ namespace arduinoServer
         {
             Trace.WriteLine(s);
         }
-
+        static public Boolean bSerialChanged = false;
         private SerialPort mSerialPort;
         private EventWaitHandle mStopEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
         private EventWaitHandle mHeartEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
@@ -32,6 +34,7 @@ namespace arduinoServer
         private Object _myLockRead = new Object();
         public int Index = 0;
         private String sCom;
+        private String _locationpaths;
         private MemoryStream ms = new MemoryStream();
         private bool bStatus = true;
         private bool bExit = false;
@@ -41,6 +44,11 @@ namespace arduinoServer
         public override string ToString()
         {
             return sCom;
+        }
+
+        public String LocationPaths
+        {
+            set { _locationpaths = value; }
         }
 
         public String ComName
@@ -148,7 +156,7 @@ namespace arduinoServer
             }
         }
 
-        public bool Open(String serialPort, Boolean bCreateThead = true)
+        public bool Open(String serialPort, Boolean bCreateThead = true, Boolean bdtr = true)
         {
             logIt($"Open++ {serialPort}   {bCreateThead}");
             SetTimer();
@@ -165,7 +173,7 @@ namespace arduinoServer
                     mSerialPort.DataBits = 8;
                     mSerialPort.Handshake = Handshake.None;
                     mSerialPort.RtsEnable = true;
-                    mSerialPort.DtrEnable = Settings.Default.LIGHTLED;
+                    mSerialPort.DtrEnable = bdtr;
                     mSerialPort.ReadTimeout = 1000;
                     mSerialPort.WriteTimeout = 1000;
                     mSerialPort.Open();
@@ -228,6 +236,31 @@ namespace arduinoServer
             return result;
         }
 
+        static public List<string> GetColorSensorPorts()
+        {
+            List<string> l = new List<string>();
+            {
+                Regex r = new Regex(@"^USB-SERIAL CH340 \(([COM\d]+)\)$");
+                ManagementClass mc = new ManagementClass("Win32_PnPEntity");
+                ManagementObjectCollection mcCollection = mc.GetInstances();
+                foreach (ManagementObject mo in mcCollection)
+                {
+                    string s = mo["Description"]?.ToString();
+                    if (string.Compare(s, "USB-SERIAL CH340") == 0)
+                    {
+                        //System.Diagnostics.Trace.WriteLine($"device: '{mo["Description"]}'");
+                        String ss = mo["Caption"].ToString();
+                        Match m = r.Match(ss);
+                        if (m.Success)
+                        {
+                            l.Add(m.Groups[1].Value);
+                        }
+                        //l.Add(mo["Caption"].ToString());
+                    }
+                }
+            }
+            return l;
+        }
 
         private void MonitorPort()
         {
@@ -251,7 +284,18 @@ namespace arduinoServer
                             {
                                 Thread.Sleep(irtry * 500);
                                 bStatus = true;
-                                Open(sCom);
+                                if (bSerialChanged)
+                                {
+                                    PortMapping portMapping = new PortMapping();
+                                    //var ports = GetColorSensorPorts();
+                                    var curports = portMapping.GetCh340Serial();
+                                    if (curports.ContainsKey(_locationpaths))
+                                    {
+                                        logIt($"Change {sCom} to {curports[_locationpaths]}");
+                                        sCom = curports[_locationpaths];
+                                    }
+                                }
+                                Open(sCom, true, Settings.Default.LIGHTLED);
                             }
                             if (null != mSerialPort && mSerialPort.IsOpen)
                             {

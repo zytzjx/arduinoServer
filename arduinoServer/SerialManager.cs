@@ -44,32 +44,32 @@ namespace arduinoServer
 
         private Dictionary<int, TcpClient> callbacklist = new Dictionary<int, TcpClient>();
 
-        //private int oldStripSelect = 0;
-        public List<string> GetColorSensorPorts()
-        {
-            List<string> l = new List<string>();
-            {
-                Regex r = new Regex(@"^USB-SERIAL CH340 \(([COM\d]+)\)$");
-                ManagementClass mc = new ManagementClass("Win32_PnPEntity");
-                ManagementObjectCollection mcCollection = mc.GetInstances();
-                foreach (ManagementObject mo in mcCollection)
-                {
-                    string s = mo["Description"]?.ToString();
-                    if (string.Compare(s, "USB-SERIAL CH340") == 0)
-                    {
-                        //System.Diagnostics.Trace.WriteLine($"device: '{mo["Description"]}'");
-                        String ss = mo["Caption"].ToString();
-                        Match m = r.Match(ss);
-                        if (m.Success)
-                        {
-                            l.Add(m.Groups[1].Value);
-                        }
-                        //l.Add(mo["Caption"].ToString());
-                    }
-                }
-            }
-            return l;
-        }
+        ////private int oldStripSelect = 0;
+        //public List<string> GetColorSensorPorts()
+        //{
+        //    List<string> l = new List<string>();
+        //    {
+        //        Regex r = new Regex(@"^USB-SERIAL CH340 \(([COM\d]+)\)$");
+        //        ManagementClass mc = new ManagementClass("Win32_PnPEntity");
+        //        ManagementObjectCollection mcCollection = mc.GetInstances();
+        //        foreach (ManagementObject mo in mcCollection)
+        //        {
+        //            string s = mo["Description"]?.ToString();
+        //            if (string.Compare(s, "USB-SERIAL CH340") == 0)
+        //            {
+        //                //System.Diagnostics.Trace.WriteLine($"device: '{mo["Description"]}'");
+        //                String ss = mo["Caption"].ToString();
+        //                Match m = r.Match(ss);
+        //                if (m.Success)
+        //                {
+        //                    l.Add(m.Groups[1].Value);
+        //                }
+        //                //l.Add(mo["Caption"].ToString());
+        //            }
+        //        }
+        //    }
+        //    return l;
+        //}
 
         public void SendDatatoCallBack(String message)
         {
@@ -184,29 +184,13 @@ namespace arduinoServer
 
         public void Init()
         {
-            //String s = System.IO.File.ReadAllText(System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Serialconfig.json"));
-            //var serializer = new JavaScriptSerializer();
-            //config = (Dictionary<String, Object>)serializer.DeserializeObject(s);
             config.LoadConfigFile(System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Serialconfig.json"));
 
-            //var seriportLabels = new JavaScriptSerializer();
-            //var portlabels = (Dictionary<String, Object>)serializer.DeserializeObject(Settings.Default.PORTLABELS);
-
-            //var seri = new JavaScriptSerializer();
-            //var StripIndex = (Dictionary<String, Object>)serializer.DeserializeObject(Settings.Default.STRIPINDEX);
-
-            //config["portlabel"] = portlabels["portlabel"];
-            //config["stripindexs"] = StripIndex["stripindexs"];
-
-
-            ///GroupCnt = ((Object[])config["portlabel"]).Cast<int>().ToArray().Length;
-
-            ///List<string> sComsConfig = ((Object[])config["serialports"]).Select(i => i.ToString()).ToList();//GetColorSensorPorts();
-            List<string> sComsConfig = config.GetComList();
-            Program.logIt($"Config file include:{String.Join(", ", sComsConfig.ToArray())}");
-
-            List<string> sComsPC = GetColorSensorPorts();
+            List<string> sComsPC = SerialMonitor.GetColorSensorPorts();
             Program.logIt($"System Exists include:{String.Join(", ", sComsPC.ToArray())}");
+
+            List<string> sComsConfig = config.GetUseCommList(sComsPC);
+            Program.logIt($"Config file include:{String.Join(", ", sComsConfig.ToArray())}");
 
             List<String> sComs = sComsConfig.Intersect(sComsPC).ToList();
             Program.logIt($"serial coms count {sComs.Count}");
@@ -231,6 +215,7 @@ namespace arduinoServer
                 {
                     SerialMonitor sertmp = new SerialMonitor()
                     {
+                        LocationPaths = config.FConfigs[index.ToString()].Serialindex["0"],
                         Index = index++
                     };
 
@@ -293,6 +278,10 @@ namespace arduinoServer
             {
                 Program.logIt("\tAntecedent：" + Device.Antecedent);
                 Program.logIt("\tDependent：" + Device.Dependent);
+                if (Device.Dependent.Contains(@"USB\\VID_1A86&PID_7523"))
+                {
+                    SerialMonitor.bSerialChanged = true;
+                }
                
             }
         }
@@ -362,8 +351,8 @@ namespace arduinoServer
                     }
                     Thread.Sleep(200);
                     ret[index++] = ser.VersionInfo;
-                    ret[index++] = "333";
-                    ret[index++] = "444";
+                    //ret[index++] = "333";
+                    //ret[index++] = "444";
                 }
                 catch (Exception)
                 {

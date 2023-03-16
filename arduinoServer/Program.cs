@@ -58,6 +58,7 @@ namespace arduinoServer
                     SerialManager.Init();
                     start(args, e);
                     e.Close();
+                    //SerialManager clean data
                 }
                 catch (Exception) { }
             }

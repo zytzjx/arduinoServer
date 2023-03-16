@@ -20,6 +20,7 @@ namespace arduinoServer
         public Dictionary<String, String> Serialindex;
     }
 
+
     class Config
     {
         public Dictionary<String, FixtureConfig> FConfigs = new Dictionary<String, FixtureConfig>();
@@ -157,6 +158,90 @@ namespace arduinoServer
                 if (FConfigs.ContainsKey(s))
                 {
                     coms.Add(FConfigs[s].Serialports[0]);
+                }
+                else
+                {
+                    Program.logIt($"config file error. lost {i}");
+                }
+            }
+            return coms;
+        }
+
+        public bool ListsEquivalentDuplicateElements(List<string> listA, List<string> listB)
+        {
+            // Check if both lists contain the same elements
+            if (listA.SequenceEqual(listB))
+            {
+                return true;
+            }
+
+            // Check if listA contains all elements of listB and vice versa
+            return listA.OrderBy(x => x).SequenceEqual(listB.OrderBy(x => x)) && listB.OrderBy(x => x).SequenceEqual(listA.OrderBy(x => x));
+        }
+
+        public bool AreListsEquivalent(List<string> listA, List<string> listB)
+        {
+            if (listA == null && listB == null) return true;
+            if (listA == null || listB == null) return false;
+            var setA = new HashSet<string>(listA);
+            var setB = new HashSet<string>(listB);
+
+            // Check if both sets contain the same elements
+            if (setA.SetEquals(setB))
+            {
+                return true;
+            }
+
+            // Check if setA contains all elements of setB and vice versa
+            return false;
+        }
+
+        public bool IsMatchConfig(List<string> serials)
+        {
+            return AreListsEquivalent(GetComList(), serials);
+        }
+
+        public List<string> GetUseCommList(List<string> serials)
+        {
+            var configlist = GetComList();
+            if (AreListsEquivalent(configlist,serials))
+            {
+                return configlist;
+            }
+
+            PortMapping portMapping = new PortMapping();
+            var kvmap = portMapping.GetCh340Serial();
+            if (kvmap.Count == 0)
+            {
+                return configlist;
+            }
+            return GetComListConn(kvmap);
+        }
+
+        public List<string> GetComListConn(Dictionary<String, string> kv)
+        {
+            //key is location path
+            List<String> coms = new List<string>();
+            for (int i = 0; i < Count; i++)
+            {
+                string s = i.ToString();
+                if (FConfigs.ContainsKey(s))
+                {
+                    try
+                    {
+                        if (kv.ContainsKey(FConfigs[s].Serialindex["0"]))
+                        {
+                            coms.Add(kv[FConfigs[s].Serialindex["0"]]);
+                        }
+                        else
+                        {
+                            coms.Add(FConfigs[s].Serialports[0]);
+                        }
+                    }
+                    catch
+                    {
+                        Program.logIt("config file failed or kv is null");
+                    }
                 }
                 else
                 {
