@@ -1,6 +1,8 @@
 // (c) Michael Schoeffler 2017, http://www.mschoeffler.de
 // LED all light time is 5 ms
-
+/*
+ * version:2.0.4 it is same as 2.0.3. Only 2.0.3 has two versions.
+*/
 #define FASTLED_INTERNAL
 #include <FastLED.h>
 
@@ -60,8 +62,8 @@ struct RGB leds_status_bak[NUM_LEDS_STATUS]; // Backup single LED status
 // strandtest example for more information on possible values.
 Adafruit_NeoPixel pixels(NUM_LEDS_STATUS, DATA_PIN_STATUS, NEO_GRB + NEO_KHZ800);
 
-//#define VERSION "version: 2.0.3"    //For 10 ports, begin 2
-#define VERSION "version: 3.0.3"      //For 2 ports, begin 3
+#define VERSION "version: 2.0.4"    //For 10 ports, begin 2
+//#define VERSION "version: 3.0.3"      //For 2 ports, begin 3
 /// 1.0.1 #5707 requirement
 
 
