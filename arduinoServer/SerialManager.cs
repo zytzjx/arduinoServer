@@ -75,6 +75,7 @@ namespace arduinoServer
         {
             if (!String.IsNullOrEmpty(message))
             {
+                Program.logIt($"Send Message to Server: {message}");
                 Byte[] data = System.Text.Encoding.ASCII.GetBytes(message+ Environment.NewLine);
                 lock (callbacklist) {
                     List<int> keys = new List<int>(callbacklist.Keys);

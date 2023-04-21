@@ -40,7 +40,10 @@ namespace arduinoServer
         private bool bExit = false;
         private System.Timers.Timer aTimer;
         public String VersionInfo = "1.0.0";
-       
+
+        private  Thread threadread = null;
+        private  Thread threadmoniport = null;
+
         public override string ToString()
         {
             return sCom;
@@ -149,6 +152,7 @@ namespace arduinoServer
             if (mSerialPort != null)
             {
                 logIt("Detect Fixture No response at {0:HH:mm:ss.fff}, open status: {1}", e.SignalTime, mSerialPort.IsOpen);
+                Open(sCom);
             }
             else
             {
@@ -198,9 +202,16 @@ namespace arduinoServer
                 mStopEvent.Set();
                 Thread.Sleep(1000);
                 mStopEvent.Reset();
-                Thread thread1 = new Thread(ReadThread);
-                thread1.Start();
-                (new Thread(MonitorPort)).Start();
+                if (threadread == null)
+                {
+                    threadread = new Thread(ReadThread);
+                    threadread.Start();
+                }
+                if (threadmoniport == null)
+                {
+                    threadmoniport = new Thread(MonitorPort);
+                    threadmoniport.Start();
+                }
             }
 
             return result;
@@ -216,6 +227,10 @@ namespace arduinoServer
             lock (mStopEvent)
             {
                 ms.Write(data, 0, l);
+                if (Settings.Default.IsPrintData)
+                {
+                    Program.logIt($"{sCom}: {Encoding.UTF8.GetString(data, 0, l)}");
+                }
             }
             ResetTimer();
             mHeartEvent.Set();
@@ -295,7 +310,7 @@ namespace arduinoServer
                                         sCom = curports[_locationpaths];
                                     }
                                 }
-                                Open(sCom, true, Settings.Default.LIGHTLED);
+                                Open(sCom, false, Settings.Default.LIGHTLED);
                             }
                             if (null != mSerialPort && mSerialPort.IsOpen)
                             {
@@ -335,7 +350,7 @@ namespace arduinoServer
             {
                 try
                 {
-                    while (!mStopEvent.WaitOne(10))
+                    while (!mStopEvent.WaitOne(30))
                     {
                         try
                         {
@@ -361,9 +376,9 @@ namespace arduinoServer
                                                 VersionInfo = message.Replace("version: ", "");
                                                 continue;
                                             }
-                                            if (/*message.Length==34 && message.StartsWith("I,") && */String.Compare(smsg, message, true) != 0)
+                                            if (String.Compare(smsg, message, true) != 0)
                                             {
-                                                logIt($"{Index}: {message}");
+                                                logIt($"[{Thread.CurrentThread.ManagedThreadId}]{Index}: {message}");
                                                 smsg = message;
                                                 string[] status = message.Split(',');
                                                 if (status[0] == "I")
@@ -374,8 +389,8 @@ namespace arduinoServer
                                                         {
                                                             keys[i - 1] = status[i] == "1";
                                                         }
-                                                        mDataEvent.Set();
                                                     }
+                                                    mDataEvent.Set();
                                                 }
                                             }
                                         }
@@ -388,9 +403,14 @@ namespace arduinoServer
                                     }
                                     llb.Add(dd);
                                 }
+
                                 ms.SetLength(0);
                                 if (llb.Count() > 0)
                                 {
+                                    if (Settings.Default.IsPrintData)
+                                    {
+                                        Program.logIt($"copy to ms: len={llb.Count()}: str={Encoding.UTF8.GetString(llb.ToArray())}");
+                                    }
                                     ms.Write(llb.ToArray(), 0, llb.Count);
                                     llb.Clear();
                                 }

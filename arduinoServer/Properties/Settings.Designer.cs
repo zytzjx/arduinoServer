@@ -49,5 +49,14 @@ namespace arduinoServer.Properties {
                 return ((bool)(this["LIGHTLED"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool IsPrintData {
+            get {
+                return ((bool)(this["IsPrintData"]));
+            }
+        }
     }
 }

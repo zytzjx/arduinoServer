@@ -25,7 +25,7 @@
       133
     ],
     "serialports": [
-      "COM15"
+      "COM25"
     ],
     "serialindex": {
       "0": "PCIROOT(0)#PCI(1400)#USBROOT(0)#USB(8)"
