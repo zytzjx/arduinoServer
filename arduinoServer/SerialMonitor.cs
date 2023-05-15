@@ -131,7 +131,7 @@ namespace arduinoServer
             // Create a timer with a two second interval.
             if (aTimer == null)
             {
-                aTimer = new System.Timers.Timer(2000);
+                aTimer = new System.Timers.Timer(10000);
                 // Hook up the Elapsed event for the timer. 
                 aTimer.Elapsed += OnTimedEvent;
                 aTimer.AutoReset = true;
@@ -152,7 +152,7 @@ namespace arduinoServer
             if (mSerialPort != null)
             {
                 logIt("Detect Fixture No response at {0:HH:mm:ss.fff}, open status: {1}", e.SignalTime, mSerialPort.IsOpen);
-                Open(sCom);
+                Open(sCom, false, false);
             }
             else
             {
@@ -280,7 +280,7 @@ namespace arduinoServer
         private void MonitorPort()
         {
             logIt("MonitorPort++");
-            Thread.Sleep(6000);//start self detect.
+            Thread.Sleep(10000);//start self detect.
             int irtry = 1;
             if (Monitor.TryEnter(_myLock))
             {
@@ -310,7 +310,7 @@ namespace arduinoServer
                                         sCom = curports[_locationpaths];
                                     }
                                 }
-                                Open(sCom, false, Settings.Default.LIGHTLED);
+                                Open(sCom, false, false);
                             }
                             if (null != mSerialPort && mSerialPort.IsOpen)
                             {
