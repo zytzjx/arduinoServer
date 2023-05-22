@@ -32,8 +32,8 @@ namespace arduinoServer
         public Dictionary<int, bool> buttonstatus = new Dictionary<int, bool>();
         private List<SerialMonitor> serials = new List<SerialMonitor>();
         private List<EventWaitHandle> waitHandles = new List<EventWaitHandle>();
-        //private Dictionary<String, Object> config = new Dictionary<string, object>();
-        private Config config = new Config();
+        
+        public Config config = new Config();
         private EventWaitHandle mStopEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
         //private int GroupCnt = 0;
         private int MAX_Groupt = 0;
@@ -43,33 +43,6 @@ namespace arduinoServer
         private bool FinishInit = false;
 
         private Dictionary<int, TcpClient> callbacklist = new Dictionary<int, TcpClient>();
-
-        ////private int oldStripSelect = 0;
-        //public List<string> GetColorSensorPorts()
-        //{
-        //    List<string> l = new List<string>();
-        //    {
-        //        Regex r = new Regex(@"^USB-SERIAL CH340 \(([COM\d]+)\)$");
-        //        ManagementClass mc = new ManagementClass("Win32_PnPEntity");
-        //        ManagementObjectCollection mcCollection = mc.GetInstances();
-        //        foreach (ManagementObject mo in mcCollection)
-        //        {
-        //            string s = mo["Description"]?.ToString();
-        //            if (string.Compare(s, "USB-SERIAL CH340") == 0)
-        //            {
-        //                //System.Diagnostics.Trace.WriteLine($"device: '{mo["Description"]}'");
-        //                String ss = mo["Caption"].ToString();
-        //                Match m = r.Match(ss);
-        //                if (m.Success)
-        //                {
-        //                    l.Add(m.Groups[1].Value);
-        //                }
-        //                //l.Add(mo["Caption"].ToString());
-        //            }
-        //        }
-        //    }
-        //    return l;
-        //}
 
         public void SendDatatoCallBack(String message)
         {
@@ -185,13 +158,38 @@ namespace arduinoServer
 
         public void Init()
         {
-            config.LoadConfigFile(System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Serialconfig.json"));
+            config.LoadConfigFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Serialconfig.json"));
 
+            //get pc ch340 serial port
             List<string> sComsPC = SerialMonitor.GetColorSensorPorts();
             Program.logIt($"System Exists include:{String.Join(", ", sComsPC.ToArray())}");
-
+            // get config set ch340
             List<string> sComsConfig = config.GetUseCommList(sComsPC);
             Program.logIt($"Config file include:{String.Join(", ", sComsConfig.ToArray())}");
+            Boolean bSaveConfig =  !sComsPC.SequenceEqual(sComsConfig);
+
+            Dictionary<int, FDUSB.USBDevice> devs = new Dictionary<int, FDUSB.USBDevice>();
+            if (sComsConfig.Count < sComsPC.Count || sComsConfig.Intersect(sComsPC).ToList().Count < sComsPC.Count)
+            {
+                var devices = FDUSB.ListConnectedDevices();
+                Dictionary<int, String> data = new Dictionary<int, string>();
+                int i = 0;
+                foreach (FDUSB.USBDevice dev in devices)
+                {
+                    if (String.Compare(dev.Name, @"USB-SERIAL CH340", true) == 0)
+                    {
+                        devs[i] = dev;
+                        data[i++] = FDUSB.GetComFromInstanceID(dev.InstanceID);
+                        Program.logIt(dev.ToString());
+                    }
+                }
+                sComsConfig.Clear();
+                foreach(var ii in data)
+                {
+                    sComsConfig.Add(ii.Value);
+                }
+            }
+
 
             List<String> sComs = sComsConfig.Intersect(sComsPC).ToList();
             Program.logIt($"serial coms count {sComs.Count}");
@@ -201,24 +199,26 @@ namespace arduinoServer
                 Program.logIt($"using pc list serial port, because config 1 com.");
                 sComs = sComsPC;
             }
-            //if (config.ContainsKey("serialports"))
-            //{
-            //    if (((Object[])config["serialports"]).Length > 1)
-            //    {
-            //        sComs = ((Object[])config["serialports"]).Cast<String>().ToList();
-            //    }
-            //}
             
             int index = 0;
             for (int i = 0; i< sComs.Count; i++){
                 String sComName = sComs[i];
 
                 {
-                    SerialMonitor sertmp = new SerialMonitor()
+                    SerialMonitor sertmp = new SerialMonitor();
+                    if (!config.FConfigs.ContainsKey(index.ToString()))
                     {
-                        LocationPaths = config.FConfigs[index.ToString()].Serialindex["0"],
-                        Index = index++
-                    };
+                        FixtureConfig configfix = new FixtureConfig();
+                        configfix.Init();
+                        configfix.Portlabel = Settings.Default.portlabel.Split(',').Select(s => Int32.Parse(s)).ToList();
+                        configfix.Stripindexs = Settings.Default.stripindexs.Split(',').Select(s => Int32.Parse(s)).ToList();
+                        configfix.Serialports.Add(sComName);
+                        configfix.Serialindex["0"] = devs[0].DeviceLocationpaths;
+                        config.FConfigs[index.ToString()] = configfix;
+                    }
+                    sertmp.LocationPaths = config.FConfigs[index.ToString()].Serialindex["0"];
+                    sertmp.Index = index++;
+               
 
 
                     Program.logIt($"{sComName} opening");
@@ -237,6 +237,11 @@ namespace arduinoServer
                     serials.Add(sertmp);
                     waitHandles.Add(sertmp.mDataEvent);
                 }
+            }
+
+            if (bSaveConfig)
+            {
+                config.SaveConfigFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Serialconfig.json"));
             }
 
             MAX_Groupt = serials.Count();

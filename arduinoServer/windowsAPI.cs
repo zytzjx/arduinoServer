@@ -66,7 +66,7 @@ namespace arduinoServer
         }
 
         #endregion
-
+        #region DEVPROPKEY_DEVICE Define
         //
         // Device properties
         //
@@ -107,7 +107,7 @@ namespace arduinoServer
         internal static  DEVPROPKEY DEVPKEY_DeviceInterface_HID_ProductId = new DEVPROPKEY(0xcbf38310, 0x4a17, 0x4310, 0xa1, 0xeb, 0x24, 0x7f, 0xb, 0x67, 0x59, 0x3b, 6); // DEVPROP_TYPE.UINT16
         internal static  DEVPROPKEY DEVPKEY_DeviceInterface_HID_VersionNumber = new DEVPROPKEY(0xcbf38310, 0x4a17, 0x4310, 0xa1, 0xeb, 0x24, 0x7f, 0xb, 0x67, 0x59, 0x3b, 7); // DEVPROP_TYPE.UINT16
         internal static  DEVPROPKEY DEVPKEY_DeviceInterface_HID_BackgroundAccess = new DEVPROPKEY(0xcbf38310, 0x4a17, 0x4310, 0xa1, 0xeb, 0x24, 0x7f, 0xb, 0x67, 0x59, 0x3b, 8); // DEVPROP_TYPE.BOOLEAN
-
+        #endregion
         #region "Win32API"
 
         #region constants
@@ -1196,6 +1196,46 @@ namespace arduinoServer
 
         [DllImport("setupapi.dll", SetLastError = true)]
         internal static extern IntPtr SetupDiGetClassDevs(IntPtr ClassGuid, [MarshalAs(UnmanagedType.LPTStr)] string Enumerator, IntPtr hwndParent, uint Flags);
+
+        [DllImport("setupapi.dll")]
+        private static extern int CM_Get_Parent(out IntPtr pdnDevInst, int dnDevInst, int ulFlags);
+
+        [DllImport("setupapi.dll", CharSet = CharSet.Auto)]
+        private static extern int CM_Get_Device_ID(IntPtr dnDevInst, IntPtr Buffer, int BufferLen, int ulFlags);
+
+        [DllImport("setupapi.dll", CharSet = CharSet.Auto)]
+        private static extern IntPtr SetupDiGetClassDevs(ref Guid ClassGuid, int Enumerator, IntPtr hwndParent, int Flags);
+
+        [DllImport("setupapi.dll", CharSet = CharSet.Auto)]
+        private static extern IntPtr SetupDiGetClassDevs(int ClassGuid, string Enumerator, IntPtr hwndParent, int Flags);
+
+        [DllImport("setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern bool SetupDiEnumDeviceInterfaces(IntPtr DeviceInfoSet, IntPtr DeviceInfoData, ref Guid InterfaceClassGuid, int MemberIndex, ref SP_DEVICE_INTERFACE_DATA DeviceInterfaceData);
+
+        [DllImport("setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern bool SetupDiGetDeviceInterfaceDetail(IntPtr DeviceInfoSet, ref SP_DEVICE_INTERFACE_DATA DeviceInterfaceData, ref SP_DEVICE_INTERFACE_DETAIL_DATA DeviceInterfaceDetailData, int DeviceInterfaceDetailDataSize, ref int RequiredSize, ref SP_DEVINFO_DATA DeviceInfoData);
+
+        [DllImport("setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern bool SetupDiGetDeviceRegistryProperty(IntPtr DeviceInfoSet, ref SP_DEVINFO_DATA DeviceInfoData, int iProperty, ref int PropertyRegDataType, IntPtr PropertyBuffer, int PropertyBufferSize, ref int RequiredSize);
+
+        [DllImport("setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern bool SetupDiEnumDeviceInfo(IntPtr DeviceInfoSet, int MemberIndex, ref SP_DEVINFO_DATA DeviceInfoData);
+
+        //[DllImport("setupapi.dll", SetLastError = true)]
+        //private static extern bool SetupDiDestroyDeviceInfoList(IntPtr DeviceInfoSet);
+
+        [DllImport("setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern bool SetupDiGetDeviceInstanceId(IntPtr DeviceInfoSet, ref SP_DEVINFO_DATA DeviceInfoData, StringBuilder DeviceInstanceId, int DeviceInstanceIdSize, out int RequiredSize);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern bool DeviceIoControl(IntPtr hDevice, int dwIoControlCode, IntPtr lpInBuffer, int nInBufferSize, IntPtr lpOutBuffer, int nOutBufferSize, out int lpBytesReturned, IntPtr lpOverlapped);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr CreateFile(string lpFileName, int dwDesiredAccess, int dwShareMode, IntPtr lpSecurityAttributes, int dwCreationDisposition, int dwFlagsAndAttributes, IntPtr hTemplateFile);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern bool CloseHandle(IntPtr hObject);
+
 
         #endregion SetUpAPI
 

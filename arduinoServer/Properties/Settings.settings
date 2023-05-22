@@ -14,5 +14,14 @@
     <Setting Name="IsPrintData" Type="System.Boolean" Scope="Application">
       <Value Profile="(Default)">False</Value>
     </Setting>
+    <Setting Name="updateurlacl" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="portlabel" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">1,2,3,4,5,6,7,8,9,10</Value>
+    </Setting>
+    <Setting Name="stripindexs" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">1,16,30,45,60,74,89,103,118,133</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

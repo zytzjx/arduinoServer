@@ -5,10 +5,12 @@ using System.Linq;
 using System.Management;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace arduinoServer
 {
+
     class PortMapping
     {
         const string VID340 = "1A86";
@@ -24,6 +26,8 @@ namespace arduinoServer
                 var antecedent = usb.GetPropertyValue("Antecedent") as string;
                 var dependent = usb.GetPropertyValue("Dependent") as string;
                 //Console.WriteLine(dependent);
+                //Regex.IsMatch(dependent, Regex.Escape($"VID_{vid}"), RegexOptions.IgnoreCase);
+                //Regex.IsMatch(dependent, Regex.Escape($"PID_{pid}"), RegexOptions.IgnoreCase);
                 if (dependent.Contains($"VID_{vid}") && dependent.Contains($"PID_{pid}"))
                 {
                     //\\JEFFREYPC\root\cimv2:Win32_PnPEntity.DeviceID="USB\\VID_1A86&PID_7523\\6&223C545B&0&1"

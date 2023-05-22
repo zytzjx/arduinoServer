@@ -57,6 +57,10 @@ namespace arduinoServer
         [OperationContract]
         [WebGet(UriTemplate = "/querycallback")]
         Stream QueryRegister();
+
+        [OperationContract]
+        [WebGet(UriTemplate = "/updateconfig")]
+        Stream UpdateConfig();
     }
 
     public class SerialService : ISerialServer
@@ -198,5 +202,10 @@ namespace arduinoServer
             return ret;
         }
 
+        public Stream UpdateConfig()
+        {
+            Program.SerialManager.config.LoadConfigFile(System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Serialconfig.json"));
+            return new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes($"{{\"result\":\"OK\"}}"));
+        }
     }
 }

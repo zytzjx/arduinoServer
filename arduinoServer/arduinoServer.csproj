@@ -53,6 +53,7 @@
   <ItemGroup>
     <Compile Include="Config.cs" />
     <Compile Include="EZUSB.cs" />
+    <Compile Include="FDUSB.cs" />
     <Compile Include="IntDictionaryConverter.cs" />
     <Compile Include="ISerialServer.cs" />
     <Compile Include="portmapping.cs" />

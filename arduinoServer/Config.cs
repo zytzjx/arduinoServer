@@ -18,6 +18,13 @@ namespace arduinoServer
         public List<int> Stripindexs;
         public List<String> Serialports; 
         public Dictionary<String, String> Serialindex;
+        public void Init()
+        {
+            Portlabel = new List<int>();
+            Stripindexs = new List<int>();
+            Serialports = new List<string>();
+            Serialindex = new Dictionary<string, string>();
+        }
     }
 
 
@@ -28,9 +35,24 @@ namespace arduinoServer
         {
             if (String.IsNullOrEmpty(sFile)||!File.Exists(sFile))
                 sFile = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Serialconfig.json");
-            var sjson = File.ReadAllText(sFile);
-            var serializer = new JavaScriptSerializer();
-            FConfigs = serializer.Deserialize<Dictionary<String, FixtureConfig>>(sjson);
+
+            if (File.Exists(sFile))
+            {
+                var sjson = File.ReadAllText(sFile);
+                var serializer = new JavaScriptSerializer();
+                FConfigs = serializer.Deserialize<Dictionary<String, FixtureConfig>>(sjson);
+            }
+        }
+
+        public void SaveConfigFile(String sFile)
+        {
+            try
+            {
+                var serializer = new JavaScriptSerializer();
+                string sjson = serializer.Serialize(FConfigs);
+                File.WriteAllText(sFile, sjson);
+            }
+            catch (Exception) { }
         }
 
         /// <summary>

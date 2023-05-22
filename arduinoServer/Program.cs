@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.ServiceModel;
 using System.ServiceModel.Web;
@@ -18,6 +21,50 @@ namespace arduinoServer
         const string androidServer_Event_Name = "ARDUINOSERVER_04122020";
 
         public static SerialManager SerialManager = new SerialManager();
+
+        static void DoNetshStuff()
+        {
+            if (Properties.Settings.Default.updateurlacl) return;
+            // get full path to netsh.exe command
+            var netsh = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.System),
+                "netsh.exe");
+
+            // prepare to launch netsh.exe process
+            var startInfo = new ProcessStartInfo(netsh);
+            startInfo.Arguments = " http add urlacl url=\"http://+:3420/\" user=\"Everyone\"";
+            startInfo.UseShellExecute = false;
+            startInfo.CreateNoWindow = true;
+            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            startInfo.RedirectStandardOutput = true;
+
+
+            try
+            {
+                var process = Process.Start(startInfo);
+                string stdout = process.StandardOutput.ReadToEnd();
+                process.WaitForExit();
+                Boolean bSucc = false;
+                if (!String.IsNullOrEmpty(stdout) && stdout.IndexOf("that file already exists") > 0)
+                {
+                    bSucc = true;
+                }
+                if (process.ExitCode == 0 || bSucc)
+                {
+                    Properties.Settings.Default.updateurlacl = true;
+                    Properties.Settings.Default.Save();
+                }
+                
+            }
+            catch (FileNotFoundException)
+            {
+                // netsh.exe was missing?
+            }
+            catch (Win32Exception)
+            {
+                // user may have aborted the action, or doesn't have access
+            }
+        }
 
         [MTAThread]
         static void Main(string[] args)
@@ -45,6 +92,7 @@ namespace arduinoServer
             if (_args.IsParameterTrue("start-service"))
             {
                 // start service
+                DoNetshStuff();
                 try
                 {
                     e = System.Threading.EventWaitHandle.OpenExisting(androidServer_Event_Name);
