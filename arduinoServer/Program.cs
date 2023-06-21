@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Security.Principal;
 using System.ServiceModel;
 using System.ServiceModel.Web;
 using System.Text;
@@ -66,9 +68,64 @@ namespace arduinoServer
             }
         }
 
+        static void ZipFiletoFile()
+        {
+            String sourceFilePath = Environment.ExpandEnvironmentVariables(@"%APSTHOME%arduinoServer.log");
+            String destinationFilePath = Environment.ExpandEnvironmentVariables($@"%APSTHOME%logs\backups\arduinoServer_{DateTime.Now.ToString("yyyyMMddThhmmss")}.zip");
+            if (!File.Exists(sourceFilePath)) return;
+            try
+            {
+                using (FileStream sourceFileStream = File.OpenRead(sourceFilePath))
+                {
+                    using (FileStream destinationFileStream = File.Create(destinationFilePath))
+                    {
+                        using (ZipArchive archive = new ZipArchive(destinationFileStream, ZipArchiveMode.Create))
+                        {
+                            string entryName = Path.GetFileName(sourceFilePath);
+                            ZipArchiveEntry entry = archive.CreateEntry(entryName);
+
+                            using (Stream entryStream = entry.Open())
+                            {
+                                sourceFileStream.CopyTo(entryStream);
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+            try
+            {
+                File.Delete(sourceFilePath);
+            }
+            catch
+            {
+
+            }
+        }
+
+        static void prepareArduinoDriver()
+        {
+            logIt("prepareArduinoDriver ++");
+            var proc = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ArduinoDriverHelper"),
+                    UseShellExecute = false,
+                    CreateNoWindow = false
+                }
+            };
+            proc.Start();
+            proc.WaitForExit();
+            logIt("prepareArduinoDriver --");
+        }
+
         [MTAThread]
         static void Main(string[] args)
         {
+            ZipFiletoFile();
+            Trace.Listeners.Add(new TextWriterTraceListener(Environment.ExpandEnvironmentVariables(@"%APSTHOME%logs\arduinoServer.log"), "myListener"));
+            Trace.AutoFlush = true;
             //Config config = new Config();
             //config.LoadConfigFile(@"E:\Works\Arduino\arduinoServer\arduinoServer\Serialconfig.json");
             //logIt($"{config.LabelCount}");
@@ -92,7 +149,6 @@ namespace arduinoServer
             if (_args.IsParameterTrue("start-service"))
             {
                 // start service
-                DoNetshStuff();
                 try
                 {
                     e = System.Threading.EventWaitHandle.OpenExisting(androidServer_Event_Name);
@@ -101,12 +157,18 @@ namespace arduinoServer
                 }
                 catch (WaitHandleCannotBeOpenedException)
                 {
+                    DoNetshStuff();
+                    prepareArduinoDriver();
+
                     e = new EventWaitHandle(false, EventResetMode.ManualReset, androidServer_Event_Name);
                     //argMap.Add("quitEvent", e);
                     SerialManager.Init();
                     start(args, e);
                     e.Close();
                     //SerialManager clean data
+                    Trace.Flush();
+                    Trace.Close();
+                    ZipFiletoFile();
                 }
                 catch (Exception) { }
             }

@@ -18,11 +18,11 @@ namespace arduinoServer
     {
         public static void logIt(String format, params Object[] arg)
         {
-            Trace.WriteLine(String.Format(format, arg));
+            Trace.WriteLine($"[arduinoServer]:{String.Format(format, arg)}");
         }
         public static void logIt(String s)
         {
-            Trace.WriteLine(s);
+            Trace.WriteLine($"[arduinoServer]:{s}");
         }
         static public Boolean bSerialChanged = false;
         private SerialPort mSerialPort;
@@ -227,10 +227,10 @@ namespace arduinoServer
             lock (mStopEvent)
             {
                 ms.Write(data, 0, l);
-                if (Settings.Default.IsPrintData)
-                {
-                    Program.logIt($"{sCom}: {Encoding.UTF8.GetString(data, 0, l)}");
-                }
+            }
+            if (Settings.Default.IsPrintData)
+            {
+                Program.logIt($"{sCom}: {Encoding.UTF8.GetString(data, 0, l)}");
             }
             ResetTimer();
             mHeartEvent.Set();
@@ -346,16 +346,18 @@ namespace arduinoServer
             int iRetry = 0;
             logIt("ReadThread++");
             List<byte> llb = new List<byte>();
+            List<string> messages = new List<string>();
             if (Monitor.TryEnter(_myLockRead))
             {
                 try
                 {
-                    while (!mStopEvent.WaitOne(30))
+                    while (!mStopEvent.WaitOne(45))
                     {
                         try
                         {
                             lock (mStopEvent)
                             {
+                                llb.Clear();
                                 ms.Seek(0, SeekOrigin.Begin);
                                 int count = 0;
                                 byte dd = 0;
@@ -370,29 +372,30 @@ namespace arduinoServer
                                         {
                                             string message = Encoding.UTF8.GetString(llb.ToArray());// Console.WriteLine(Encoding.UTF8.GetString(llb.ToArray()));
                                             llb.Clear();
+                                            messages.Add(message);
                                             //logIt($"{Index}: {message}");
-                                            if (message.StartsWith("version:"))
-                                            {
-                                                VersionInfo = message.Replace("version: ", "");
-                                                continue;
-                                            }
-                                            if (String.Compare(smsg, message, true) != 0)
-                                            {
-                                                logIt($"[{Thread.CurrentThread.ManagedThreadId}]{Index}: {message}");
-                                                smsg = message;
-                                                string[] status = message.Split(',');
-                                                if (status[0] == "I")
-                                                {
-                                                    lock (keys)
-                                                    {
-                                                        for (int i = 1; i < status.Length; ++i)
-                                                        {
-                                                            keys[i - 1] = status[i] == "1";
-                                                        }
-                                                    }
-                                                    mDataEvent.Set();
-                                                }
-                                            }
+                                            //if (message.StartsWith("version:"))
+                                            //{
+                                            //    VersionInfo = message.Replace("version: ", "");
+                                            //    continue;
+                                            //}
+                                            //if (String.Compare(smsg, message, true) != 0)
+                                            //{
+                                            //    logIt($"[{Thread.CurrentThread.ManagedThreadId}]{Index}: {message}");
+                                            //    smsg = message;
+                                            //    string[] status = message.Split(',');
+                                            //    if (status[0] == "I")
+                                            //    {
+                                            //        lock (keys)
+                                            //        {
+                                            //            for (int i = 1; i < status.Length; ++i)
+                                            //            {
+                                            //                keys[i - 1] = status[i] == "1";
+                                            //            }
+                                            //        }
+                                            //        mDataEvent.Set();
+                                            //    }
+                                            //}
                                         }
                                         continue;
                                     }
@@ -407,14 +410,47 @@ namespace arduinoServer
                                 ms.SetLength(0);
                                 if (llb.Count() > 0)
                                 {
-                                    if (Settings.Default.IsPrintData)
-                                    {
-                                        Program.logIt($"copy to ms: len={llb.Count()}: str={Encoding.UTF8.GetString(llb.ToArray())}");
-                                    }
+                                    //if (Settings.Default.IsPrintData)
+                                    //{
+                                    //    Program.logIt($"copy to ms: len={llb.Count()}: str={Encoding.UTF8.GetString(llb.ToArray())}");
+                                    //}
                                     ms.Write(llb.ToArray(), 0, llb.Count);
-                                    llb.Clear();
+                                    //llb.Clear();
                                 }
                             }
+
+                            if (llb.Count() > 0 && Settings.Default.IsPrintData)
+                            {
+                                Program.logIt($"copy to ms: len={llb.Count()}: str={Encoding.UTF8.GetString(llb.ToArray())}");
+                            }
+                            llb.Clear();
+
+                            foreach (var message in messages)
+                            {
+                                if (message.StartsWith("version:"))
+                                {
+                                    VersionInfo = message.Replace("version: ", "");
+                                    continue;
+                                }
+                                if (String.Compare(smsg, message, true) != 0)
+                                {
+                                    logIt($"[{Thread.CurrentThread.ManagedThreadId}]{Index}: {message}");
+                                    smsg = message;
+                                    string[] status = message.Split(',');
+                                    if (status[0] == "I")
+                                    {
+                                        lock (keys)
+                                        {
+                                            for (int i = 1; i < status.Length; ++i)
+                                            {
+                                                keys[i - 1] = status[i] == "1";
+                                            }
+                                        }
+                                        mDataEvent.Set();
+                                    }
+                                }
+                            }
+                            messages.Clear();
                         }
                         catch (Exception e)
                         {

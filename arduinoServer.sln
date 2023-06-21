@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "arduinoServer", "arduinoSer
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "testSerailPort", "testSerailPort\testSerailPort.csproj", "{92266E0E-B237-4C45-B98A-78A9CB8C3CAE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArduinoDriverHelper", "ArduinoDriverHelper\ArduinoDriverHelper.csproj", "{995055F9-162E-44CA-B9ED-FED9D4FEB764}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{92266E0E-B237-4C45-B98A-78A9CB8C3CAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{92266E0E-B237-4C45-B98A-78A9CB8C3CAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{92266E0E-B237-4C45-B98A-78A9CB8C3CAE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{995055F9-162E-44CA-B9ED-FED9D4FEB764}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{995055F9-162E-44CA-B9ED-FED9D4FEB764}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{995055F9-162E-44CA-B9ED-FED9D4FEB764}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{995055F9-162E-44CA-B9ED-FED9D4FEB764}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
