@@ -26,9 +26,11 @@ namespace arduinoServer
         }
         static public Boolean bSerialChanged = false;
         private SerialPort mSerialPort;
+        private CH340Lib.CH340 mCh340Port;
         private EventWaitHandle mStopEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
         private EventWaitHandle mHeartEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
         public EventWaitHandle mDataEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
+        private EventWaitHandle m_Ch340ErrorEvent = new EventWaitHandle(false, EventResetMode.ManualReset);
         private Dictionary<int, bool> keys = new Dictionary<int, bool>();
         private Object _myLock = new Object();
         private Object _myLockRead = new Object();
@@ -43,6 +45,8 @@ namespace arduinoServer
 
         private  Thread threadread = null;
         private  Thread threadmoniport = null;
+        int nErrorCnt = 0;
+        bool bErrorTooMuch = false;
 
         public override string ToString()
         {
@@ -111,8 +115,15 @@ namespace arduinoServer
                 if (String.IsNullOrEmpty(ss)) return ret;
                 try
                 {
-
-                    mSerialPort.Write(ss);
+                    if (Properties.Settings.Default.USEDLLCOMM)
+                    {
+                        int retlen = mCh340Port.WriteBytes(Encoding.ASCII.GetBytes(ss));
+                        ret = retlen == ss.Length;
+                    }
+                    else
+                    {
+                        mSerialPort.Write(ss);
+                    }
                     ret = true;
                 }
                 catch (Exception e)
@@ -163,59 +174,123 @@ namespace arduinoServer
         public bool Open(String serialPort, Boolean bCreateThead = true, Boolean bdtr = true)
         {
             logIt($"Open++ {serialPort}   {bCreateThead}");
-            SetTimer();
-            Close();
             bool result = false;
-            if (!string.IsNullOrEmpty(serialPort))
+            if (Properties.Settings.Default.USEDLLCOMM)
             {
-                sCom = serialPort;
-                try
+                if (!string.IsNullOrEmpty(serialPort))
                 {
-                    mSerialPort = new SerialPort(serialPort, 9600);
-                    mSerialPort.Parity = Parity.None;
-                    mSerialPort.StopBits = StopBits.One;
-                    mSerialPort.DataBits = 8;
-                    mSerialPort.Handshake = Handshake.None;
-                    mSerialPort.RtsEnable = true;
-                    mSerialPort.DtrEnable = bdtr;
-                    mSerialPort.ReadTimeout = 1000;
-                    mSerialPort.WriteTimeout = 1000;
-                    mSerialPort.Open();
-                    mSerialPort.DiscardInBuffer();
-                    mSerialPort.DiscardOutBuffer();
-                    mSerialPort.DataReceived += new SerialDataReceivedEventHandler(DataReceivedHandler);
-                    result = mSerialPort.IsOpen;
-                    Thread.Sleep(50);
-                    bStatus = true;
-                }
-                catch (Exception e)
-                {
-                    logIt(e.Message);
-                    logIt(e.StackTrace);
-                    bStatus = false;
-                }
-                logIt($"serial port {sCom} on {result}");
-            }
+                    sCom = serialPort;
+                    if (mCh340Port != null)
+                    {
+                        mCh340Port.Close();
+                    }
+                    mCh340Port = new CH340Lib.CH340();
+                    if (mCh340Port.Open(sCom))
+                    {
+                        Thread.Sleep(50);
+                        bStatus = true;
+                        result = true;
+                        mCh340Port.onDataArrival += CH340_onDataArrival;
+                        mCh340Port.onError += CH340_onError;
 
-            if (result && bCreateThead)
-            {
-                mStopEvent.Set();
-                Thread.Sleep(1000);
-                mStopEvent.Reset();
-                if (threadread == null)
-                {
-                    threadread = new Thread(ReadThread);
-                    threadread.Start();
+                    }
+                    logIt($"serial port {sCom} on {result}");
                 }
-                if (threadmoniport == null)
+                if (result && bCreateThead)
                 {
-                    threadmoniport = new Thread(MonitorPort);
-                    threadmoniport.Start();
+                    if (threadread == null)
+                    {
+                        threadread = new Thread(ReadThreadDll);
+                        threadread.Name = $"ReadThread_{sCom}";
+                        threadread.Start();
+                    }
+
+                    if (threadmoniport == null)
+                    {
+                        threadmoniport = new Thread(MonitorPortDLL);
+                        threadmoniport.Name = $"Monitor_{sCom}";
+                        threadmoniport.Start();
+                    }
+
+                }
+            }
+            else
+            {
+                SetTimer();
+                Close();
+                if (!string.IsNullOrEmpty(serialPort))
+                {
+                    sCom = serialPort;
+                    try
+                    {
+                        mSerialPort = new SerialPort(serialPort, 9600);
+                        mSerialPort.Parity = Parity.None;
+                        mSerialPort.StopBits = StopBits.One;
+                        mSerialPort.DataBits = 8;
+                        mSerialPort.Handshake = Handshake.None;
+                        mSerialPort.RtsEnable = true;
+                        mSerialPort.DtrEnable = bdtr;
+                        mSerialPort.ReadTimeout = 1000;
+                        mSerialPort.WriteTimeout = 1000;
+                        mSerialPort.Open();
+                        mSerialPort.DiscardInBuffer();
+                        mSerialPort.DiscardOutBuffer();
+                        mSerialPort.DataReceived += new SerialDataReceivedEventHandler(DataReceivedHandler);
+                        result = mSerialPort.IsOpen;
+                        Thread.Sleep(50);
+                        bStatus = true;
+                    }
+                    catch (Exception e)
+                    {
+                        logIt(e.Message);
+                        logIt(e.StackTrace);
+                        bStatus = false;
+                    }
+                    logIt($"serial port {sCom} on {result}");
+                }
+
+                if (result && bCreateThead)
+                {
+                    mStopEvent.Set();
+                    Thread.Sleep(1000);
+                    mStopEvent.Reset();
+                    if (threadread == null)
+                    {
+                        threadread = new Thread(ReadThread);
+                        threadread.Name = $"ReadThread_{sCom}";
+                        threadread.Start();
+                    }
+                    if (threadmoniport == null)
+                    {
+                        threadmoniport = new Thread(MonitorPort);
+                        threadmoniport.Name = $"Monitor_{sCom}";
+                        threadmoniport.Start();
+                    }
                 }
             }
 
             return result;
 
+        }
+
+        private void CH340_onDataArrival(int A_0)
+        {
+            m_Ch340ErrorEvent.Reset();
+            nErrorCnt = 0;
+            if (Settings.Default.IsPrintData)
+            {
+                logIt($"{sCom}: onDataArrival {A_0}");
+            }
+        }
+
+        private void CH340_onError(int A_0)
+        {
+            m_Ch340ErrorEvent.Set();
+            logIt($"{sCom} onError {A_0} cnt={nErrorCnt++}");
+            if (nErrorCnt > 100)
+            {
+                bErrorTooMuch = true;
+            }
         }
 
         private void DataReceivedHandler(object sender, SerialDataReceivedEventArgs e)
@@ -230,7 +305,7 @@ namespace arduinoServer
             }
             if (Settings.Default.IsPrintData)
             {
-                Program.logIt($"{sCom}: {Encoding.UTF8.GetString(data, 0, l)}");
+                logIt($"{sCom}: {Encoding.UTF8.GetString(data, 0, l)}");
             }
             ResetTimer();
             mHeartEvent.Set();
@@ -240,11 +315,22 @@ namespace arduinoServer
         public bool Close()
         {
             bool result = false;
-            if (null != mSerialPort && mSerialPort.IsOpen)
+            if (Properties.Settings.Default.USEDLLCOMM)
             {
-                mSerialPort.Close();
-                mSerialPort = null;
-                result = true;
+                if (mCh340Port != null)
+                {
+                    mCh340Port.Close();
+                    result = true;
+                }
+            }
+            else
+            {
+                if (null != mSerialPort && mSerialPort.IsOpen)
+                {
+                    mSerialPort.Close();
+                    mSerialPort = null;
+                    result = true;
+                }
             }
             logIt($"{sCom} serial port off  {result}");
             bStatus = false;
@@ -276,6 +362,71 @@ namespace arduinoServer
             }
             return l;
         }
+
+        private void MonitorPortDLL()
+        {
+            logIt("MonitorPortDLL++");
+            Thread.Sleep(10000);//start self detect.
+            bErrorTooMuch = false;
+            int irtry = 1;
+            if (Monitor.TryEnter(_myLock))
+            {
+                try
+                {
+                    while (!bExit)
+                    {
+                        if (mHeartEvent.WaitOne(5000) && !bErrorTooMuch)
+                        {
+                            Thread.Sleep(100);
+                        }
+                        else
+                        {
+                            logIt("time out, May be Fixture Dead.");
+                            if (null == mCh340Port || !mCh340Port.IsOpen()) 
+                            {
+                                Thread.Sleep(irtry * 500);
+                                bStatus = true;
+                                if (bSerialChanged)
+                                {
+                                    PortMapping portMapping = new PortMapping();
+                                    //var ports = GetColorSensorPorts();
+                                    var curports = portMapping.GetCh340Serial();
+                                    if (curports.ContainsKey(_locationpaths))
+                                    {
+                                        logIt($"Change {sCom} to {curports[_locationpaths]}");
+                                        sCom = curports[_locationpaths];
+                                    }
+                                }
+                                Open(sCom, false, false);
+                            }
+                            if (null != mCh340Port && mCh340Port.IsOpen())
+                            {
+                                logIt($"{sCom} serial port open successfully.");
+                                irtry = 1;
+                            }
+                            else
+                            {
+                                logIt($"{sCom} serial port open failed.");
+                                irtry++;
+                                if (irtry == 12) irtry = 12;
+                            }
+                        }
+                    }
+                }
+                finally
+                {
+                    Monitor.Exit(_myLock);
+                }
+            }
+            else
+            {
+                logIt("Thread MonitorPortDLL has running.");
+            }
+
+            logIt($"MonitorPortDLL-- {bExit}");
+        }
+
+
 
         private void MonitorPort()
         {
@@ -338,6 +489,43 @@ namespace arduinoServer
 
             
             logIt($"MonitorPort-- {bExit}");
+        }
+
+        private void ReadThreadDll()
+        {
+            logIt("ReadThreadDll ++");
+            String smsg = "";
+            while (!mStopEvent.WaitOne(40))
+            {
+                var lines = mCh340Port.ReadLines();
+                foreach (var message in lines)
+                {
+                    mHeartEvent.Set();
+                    if (message.StartsWith("version:"))
+                    {
+                        VersionInfo = message.Replace("version: ", "");
+                        continue;
+                    }
+                    if (String.Compare(smsg, message, true) != 0)
+                    {
+                        logIt($"[{Thread.CurrentThread.ManagedThreadId}]{Index}: {message}");
+                        smsg = message;
+                        string[] status = message.Split(',');
+                        if (status[0] == "I")
+                        {
+                            lock (keys)
+                            {
+                                for (int i = 1; i < status.Length; ++i)
+                                {
+                                    keys[i - 1] = status[i] == "1";
+                                }
+                            }
+                            mDataEvent.Set();
+                        }
+                    }
+                }
+            }
+            logIt("ReadThreadDll --");
         }
 
         public void ReadThread()

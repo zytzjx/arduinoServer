@@ -88,5 +88,14 @@ namespace arduinoServer.Properties {
                 return ((string)(this["stripindexs"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool USEDLLCOMM {
+            get {
+                return ((bool)(this["USEDLLCOMM"]));
+            }
+        }
     }
 }

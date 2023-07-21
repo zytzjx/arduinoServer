@@ -106,17 +106,25 @@ namespace arduinoServer
         static void prepareArduinoDriver()
         {
             logIt("prepareArduinoDriver ++");
-            var proc = new Process
+            String exepath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ArduinoDriverHelper.exe");
+            if (File.Exists(exepath))
             {
-                StartInfo = new ProcessStartInfo
+                var proc = new Process
                 {
-                    FileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ArduinoDriverHelper"),
-                    UseShellExecute = false,
-                    CreateNoWindow = false
-                }
-            };
-            proc.Start();
-            proc.WaitForExit();
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = exepath,
+                        UseShellExecute = false,
+                        CreateNoWindow = false
+                    }
+                };
+                proc.Start();
+                proc.WaitForExit();
+            }
+            else
+            {
+                logIt("ArduinoDriverHelper.exe not exist");
+            }
             logIt("prepareArduinoDriver --");
         }
 
@@ -126,10 +134,7 @@ namespace arduinoServer
             ZipFiletoFile();
             Trace.Listeners.Add(new TextWriterTraceListener(Environment.ExpandEnvironmentVariables(@"%APSTHOME%logs\arduinoServer.log"), "myListener"));
             Trace.AutoFlush = true;
-            //Config config = new Config();
-            //config.LoadConfigFile(@"E:\Works\Arduino\arduinoServer\arduinoServer\Serialconfig.json");
-            //logIt($"{config.LabelCount}");
-            //logIt($"{String.Join(":", config.GetComList())}");
+            
             AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(CurrentDomain_UnhandledException);
 
             System.Configuration.Install.InstallContext _args = new System.Configuration.Install.InstallContext(null, args);

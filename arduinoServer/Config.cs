@@ -44,15 +44,39 @@ namespace arduinoServer
             }
         }
 
+        // 将 JSON 字符串中的键转换为小写字母
+        string ConvertKeysToLowercase(string json)
+        {
+            Dictionary<string, object> jsonObject = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(json);
+            Dictionary<string, object> lowercaseJsonObject = new Dictionary<string, object>();
+
+            foreach (var kvp in jsonObject)
+            {
+                string lowercaseKey = kvp.Key.ToLower();
+                Dictionary<string, object> data = (Dictionary<string, object>)kvp.Value;
+                Dictionary<string, object> lowercaseFConfigs = new Dictionary<string, object>();
+                foreach (var kp in data)
+                {
+                    string lcKey = kp.Key.ToLower();
+                    lowercaseFConfigs.Add(lcKey, kp.Value);
+                }
+                lowercaseJsonObject.Add(lowercaseKey, lowercaseFConfigs);
+            }
+
+            string lowercaseJson = new JavaScriptSerializer().Serialize(lowercaseJsonObject);
+            return lowercaseJson;
+        }
+
         public void SaveConfigFile(String sFile)
         {
             try
             {
                 var serializer = new JavaScriptSerializer();
                 string sjson = serializer.Serialize(FConfigs);
+                sjson = ConvertKeysToLowercase(sjson);
                 File.WriteAllText(sFile, sjson);
             }
-            catch (Exception) { }
+            catch (Exception e) { Program.logIt($"save config error: {e.ToString()}"); }
         }
 
         /// <summary>
