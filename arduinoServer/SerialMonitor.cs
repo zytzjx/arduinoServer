@@ -409,6 +409,7 @@ namespace arduinoServer
                             {
                                 logIt($"{sCom} serial port open successfully.");
                                 bErrorTooMuch = false;
+                                nErrorCnt = 0;
                                 irtry = 1;
                             }
                             else
