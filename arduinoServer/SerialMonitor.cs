@@ -47,6 +47,7 @@ namespace arduinoServer
         private  Thread threadmoniport = null;
         int nErrorCnt = 0;
         bool bErrorTooMuch = false;
+        Boolean bRecordError = false;
 
         public override string ToString()
         {
@@ -285,11 +286,14 @@ namespace arduinoServer
 
         private void CH340_onError(int A_0)
         {
-            m_Ch340ErrorEvent.Set();
-            logIt($"{sCom} onError {A_0} cnt={nErrorCnt++}");
-            if (nErrorCnt > 100)
+            if (bRecordError)
             {
-                bErrorTooMuch = true;
+                m_Ch340ErrorEvent.Set();
+                logIt($"{sCom} onError {A_0} cnt={nErrorCnt++}");
+                if (nErrorCnt > 100 || A_0 == 5)
+                {
+                    bErrorTooMuch = true;
+                }
             }
         }
 
@@ -368,6 +372,7 @@ namespace arduinoServer
             logIt("MonitorPortDLL++");
             Thread.Sleep(10000);//start self detect.
             bErrorTooMuch = false;
+            bRecordError = true;
             int irtry = 1;
             if (Monitor.TryEnter(_myLock))
             {
@@ -375,15 +380,16 @@ namespace arduinoServer
                 {
                     while (!bExit)
                     {
-                        if (mHeartEvent.WaitOne(5000) && !bErrorTooMuch)
+                        if (mHeartEvent.WaitOne(5000) && !bErrorTooMuch && mCh340Port.IsOpen())
                         {
                             Thread.Sleep(100);
                         }
                         else
                         {
                             logIt("time out, May be Fixture Dead.");
-                            if (null == mCh340Port || !mCh340Port.IsOpen()) 
+                            //if (null == mCh340Port || !mCh340Port.IsOpen()) 
                             {
+                                mCh340Port.Close();
                                 Thread.Sleep(irtry * 500);
                                 bStatus = true;
                                 if (bSerialChanged)
@@ -402,6 +408,7 @@ namespace arduinoServer
                             if (null != mCh340Port && mCh340Port.IsOpen())
                             {
                                 logIt($"{sCom} serial port open successfully.");
+                                bErrorTooMuch = false;
                                 irtry = 1;
                             }
                             else
@@ -425,8 +432,6 @@ namespace arduinoServer
 
             logIt($"MonitorPortDLL-- {bExit}");
         }
-
-
 
         private void MonitorPort()
         {
@@ -508,7 +513,7 @@ namespace arduinoServer
                     }
                     if (String.Compare(smsg, message, true) != 0)
                     {
-                        logIt($"[{Thread.CurrentThread.ManagedThreadId}]{Index}: {message}");
+                        logIt($"[{Thread.CurrentThread.ManagedThreadId}][{sCom}][{Index}]: {message}");
                         smsg = message;
                         string[] status = message.Split(',');
                         if (status[0] == "I")
