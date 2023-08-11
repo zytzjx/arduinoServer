@@ -5,6 +5,7 @@ using System.Linq;
 using System.ServiceModel;
 using System.ServiceModel.Web;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace arduinoServer
@@ -13,8 +14,8 @@ namespace arduinoServer
     interface ISerialServer
     {
         [OperationContract]
-        [WebGet(UriTemplate = "/getkeys")]
-        Stream GetKeys();
+        [WebGet(UriTemplate = "/getkeys?wait={timeout}")]
+        Stream GetKeys(int timeout);
 
         [OperationContract]
         [WebGet(UriTemplate = "/getkey?id={id}")]
@@ -117,12 +118,42 @@ namespace arduinoServer
             return ret;
         }
 
+        static bool AreDictionariesEqual(Dictionary<int, bool> dict1, Dictionary<int, bool> dict2)
+        {
+            if (dict1.Count != dict2.Count)
+                return false;
 
-        public Stream GetKeys()
+            foreach (var kvp in dict1)
+            {
+                if (!dict2.TryGetValue(kvp.Key, out bool value) || value != kvp.Value)
+                    return false;
+            }
+
+            return true;
+        }
+
+        public Stream GetKeys(int timeout)
         {
             Dictionary<int, bool> retdata = Program.SerialManager.GetKeys();
+            DateTime dtStart = DateTime.Now;
+            if (timeout > 0)            
+            {
+                while ((DateTime.Now - dtStart).TotalSeconds < timeout)
+                {
+                    Dictionary<int, bool> data = Program.SerialManager.GetKeys();
+                    if (AreDictionariesEqual(retdata, data))
+                    {
+                        Thread.Sleep(100);
+                    }
+                    else
+                    {
+                        return new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes(intobjecttoString(data)));
+                    }
+                }
+            }
             Stream ret = new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes(intobjecttoString(retdata)));
             return ret;
+
         }
 
         public Stream Leds(Stream stream)

@@ -38,7 +38,7 @@ namespace arduinoServer
         private String sCom;
         private String _locationpaths;
         private MemoryStream ms = new MemoryStream();
-        private bool bStatus = true;
+        private bool bStatus = false;
         private bool bExit = false;
         private System.Timers.Timer aTimer;
         public String VersionInfo = "1.0.0";
@@ -197,7 +197,7 @@ namespace arduinoServer
                     }
                     logIt($"serial port {sCom} on {result}");
                 }
-                if (result && bCreateThead)
+                if (/*result && */bCreateThead)
                 {
                     if (threadread == null)
                     {
@@ -250,7 +250,7 @@ namespace arduinoServer
                     logIt($"serial port {sCom} on {result}");
                 }
 
-                if (result && bCreateThead)
+                if (/*result && */bCreateThead)
                 {
                     mStopEvent.Set();
                     Thread.Sleep(1000);
@@ -293,6 +293,7 @@ namespace arduinoServer
                 if (nErrorCnt > 100 || A_0 == 5)
                 {
                     bErrorTooMuch = true;
+                    nErrorCnt = 0;
                 }
             }
         }
@@ -391,7 +392,7 @@ namespace arduinoServer
                             {
                                 mCh340Port.Close();
                                 Thread.Sleep(irtry * 500);
-                                bStatus = true;
+                                bStatus = false;
                                 if (bSerialChanged)
                                 {
                                     PortMapping portMapping = new PortMapping();
@@ -408,6 +409,7 @@ namespace arduinoServer
                             if (null != mCh340Port && mCh340Port.IsOpen())
                             {
                                 logIt($"{sCom} serial port open successfully.");
+                                bStatus = true;
                                 bErrorTooMuch = false;
                                 nErrorCnt = 0;
                                 irtry = 1;

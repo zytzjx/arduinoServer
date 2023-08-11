@@ -219,8 +219,6 @@ namespace arduinoServer
                     }
                     sertmp.LocationPaths = config.FConfigs[index.ToString()].Serialindex["0"];
                     sertmp.Index = index++;
-               
-
 
                     Program.logIt($"{sComName} opening");
                     int iretry = 5;
@@ -230,11 +228,7 @@ namespace arduinoServer
                         Thread.Sleep(1000);
                         if (iretry-- < 0) break;
                     }
-                    //if (!Settings.Default.LIGHTLED)
-                    //{
-                    //    sertmp.SendData("N\r");
-                    //    sertmp.SendData("N\r");
-                    //}
+
                     serials.Add(sertmp);
                     waitHandles.Add(sertmp.mDataEvent);
                 }
