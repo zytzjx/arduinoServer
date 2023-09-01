@@ -3,6 +3,7 @@
 /*
  * version:2.0.4 it is same as 2.0.3. Only 2.0.3 has two versions.
  * version:2.0.5, Add command write EEPROM
+ * version:2.0.6, 500ms send keys
 */
 #define FASTLED_INTERNAL
 #include <FastLED.h>
@@ -36,6 +37,7 @@ bool bCancel = false;
 unsigned long  lightStarttime=0;
 unsigned long  lightInterval=5000;
 bool bRecvN = false;
+int sendkeytimeout = 0;
 
 enum MODE
 {
@@ -64,7 +66,7 @@ struct RGB leds_status_bak[NUM_LEDS_STATUS]; // Backup single LED status
 // strandtest example for more information on possible values.
 Adafruit_NeoPixel pixels(NUM_LEDS_STATUS, DATA_PIN_STATUS, NEO_GRB + NEO_KHZ800);
 
-#define VERSION "version: 2.0.5"    //For 10 ports, begin 2
+#define VERSION "version: 2.0.6"    //For 10 ports, begin 2
 //#define VERSION "version: 3.0.3"      //For 2 ports, begin 3
 /// 1.0.1 #5707 requirement
 
@@ -361,6 +363,53 @@ void TestMode()
   TestModeLight();
 }
 
+void SendKeys(bool bsend)
+{
+  int ky = 0;
+  
+  for (int i = 0; i < MAX_PHONE_GROUP; ++i)
+  {
+     ky = digitalRead(keys[i]);
+     if(ky!=Btn[i]){
+      bsend = true;
+     }
+     Btn[i]=ky;
+  }
+  if (bsend){
+    sendkeytimeout = 0;
+    Serial.print("I,");
+    for (int i = 0; i < MAX_PHONE_GROUP; ++i)
+    {
+        Serial.print(Btn[i], DEC);
+        Serial.print(',');
+    }
+    Serial.println();
+  }
+}
+
+void cmdhandle(int incomingByte, int index)
+{
+  if (incomingByte == 'A')
+  {
+      showPhoneLeds(index, 0, gDebugMode == Normal);
+  }
+  else if (incomingByte == 'B')
+  {
+      showPhoneLedsStatus(0, gDebugMode == Normal);//index,
+  }
+  else if (incomingByte == 'C')
+  {
+      LEDStrip(0, gDebugMode == Normal);
+      LEDStatus(0, gDebugMode == Normal);
+  }
+  else if (incomingByte == 'L')
+  {
+      LEDStrip(1, gDebugMode == Normal);
+      LEDStatus(1, gDebugMode == Normal);
+  }else if (incomingByte == 'T'){
+      TestCmd(index, phoneclrcnt);
+  }
+}
 
 void loop()
 {
@@ -441,7 +490,9 @@ void loop()
         }
     }
     ShowAllLedLight();
-    ///*
+
+    SendKeys(sendkeytimeout++>10);
+    /*
     Serial.print("I,");
     for (int i = 0; i < MAX_PHONE_GROUP; ++i)
     {
@@ -472,26 +523,7 @@ void loop()
     //*/
     if (bRecv)
     {
-        if (incomingByte == 'A')
-        {
-            showPhoneLeds(index, 0, gDebugMode == Normal);
-        }
-        else if (incomingByte == 'B')
-        {
-            showPhoneLedsStatus(0, gDebugMode == Normal);//index,
-        }
-        else if (incomingByte == 'C')
-        {
-            LEDStrip(0, gDebugMode == Normal);
-            LEDStatus(0, gDebugMode == Normal);
-        }
-        else if (incomingByte == 'L')
-        {
-            LEDStrip(1, gDebugMode == Normal);
-            LEDStatus(1, gDebugMode == Normal);
-        }else if (incomingByte == 'T'){
-            TestCmd(index, phoneclrcnt);
-        }
+        cmdhandle(incomingByte, index);
     }
     else
     {
