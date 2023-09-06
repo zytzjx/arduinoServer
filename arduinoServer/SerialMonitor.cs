@@ -11,6 +11,8 @@ using arduinoServer.Properties;
 using System.Timers;
 using System.Text.RegularExpressions;
 using System.Management;
+using System.Collections;
+using System.Collections.Concurrent;
 
 namespace arduinoServer
 {
@@ -18,11 +20,11 @@ namespace arduinoServer
     {
         public static void logIt(String format, params Object[] arg)
         {
-            Trace.WriteLine($"[arduinoServer]:{String.Format(format, arg)}");
+            Trace.WriteLine($"[arduinoServer][{DateTime.Now.ToString("o")}]:{String.Format(format, arg)}");
         }
         public static void logIt(String s)
         {
-            Trace.WriteLine($"[arduinoServer]:{s}");
+            Trace.WriteLine($"[arduinoServer][{DateTime.Now.ToString("o")}]:{s}");
         }
         static public Boolean bSerialChanged = false;
         private SerialPort mSerialPort;
@@ -48,6 +50,8 @@ namespace arduinoServer
         int nErrorCnt = 0;
         bool bErrorTooMuch = false;
         Boolean bRecordError = false;
+
+        private ConcurrentQueue<String> queue_unsentcmd = new ConcurrentQueue<String>();
 
         public override string ToString()
         {
@@ -124,14 +128,20 @@ namespace arduinoServer
                     else
                     {
                         mSerialPort.Write(ss);
+                        ret = true;
                     }
-                    ret = true;
                 }
                 catch (Exception e)
                 {
                     logIt(e.ToString());
                     bStatus = false;
                 }
+
+                if (!ret)
+                {
+                    queue_unsentcmd.Enqueue(ss);
+                }
+
                 logIt($"SendData {sCom} -- {ret}");
                 Thread.Sleep(150);
             }
@@ -413,12 +423,18 @@ namespace arduinoServer
                                 bErrorTooMuch = false;
                                 nErrorCnt = 0;
                                 irtry = 1;
+                                Thread.Sleep(5000);
+                                String cmdled;
+                                while (queue_unsentcmd.TryDequeue(out cmdled))
+                                {
+                                    SendData(cmdled);
+                                }
                             }
                             else
                             {
                                 logIt($"{sCom} serial port open failed.");
                                 irtry++;
-                                if (irtry == 12) irtry = 12;
+                                if (irtry > 12) irtry = 12;
                             }
                         }
                     }
@@ -475,12 +491,18 @@ namespace arduinoServer
                             {
                                 logIt($"{sCom} serial port open successfully.");
                                 irtry = 1;
+                                Thread.Sleep(5000);
+                                String cmdled;
+                                while (queue_unsentcmd.TryDequeue(out cmdled))
+                                {
+                                    SendData(cmdled);
+                                }
                             }
                             else
                             {
                                 logIt($"{sCom} serial port open failed.");
                                 irtry++;
-                                if (irtry == 12) irtry = 12;
+                                if (irtry > 12) irtry = 12;
                             }
                         }
                     }
@@ -505,6 +527,7 @@ namespace arduinoServer
             String smsg = "";
             while (!mStopEvent.WaitOne(40))
             {
+                if (mCh340Port == null || !mCh340Port.IsOpen()) continue;
                 var lines = mCh340Port.ReadLines();
                 foreach (var message in lines)
                 {

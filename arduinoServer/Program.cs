@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -18,9 +19,11 @@ namespace arduinoServer
     {
         static public void logIt(string s)
         {
-            System.Diagnostics.Trace.WriteLine($"[arduinoServer]:{s}");
+            System.Diagnostics.Trace.WriteLine($"[arduinoServer][{DateTime.Now.ToString("o")}]:{s}");
         }
         const string androidServer_Event_Name = "ARDUINOSERVER_04122020";
+
+        const string androidServer_FileName = @"%APSTHOME%logs\arduinoServer.log";
 
         public static SerialManager SerialManager = new SerialManager();
 
@@ -70,7 +73,7 @@ namespace arduinoServer
 
         static void ZipFiletoFile()
         {
-            String sourceFilePath = Environment.ExpandEnvironmentVariables(@"%APSTHOME%arduinoServer.log");
+            String sourceFilePath = Environment.ExpandEnvironmentVariables(androidServer_FileName);
             String destinationFilePath = Environment.ExpandEnvironmentVariables($@"%APSTHOME%logs\backups\arduinoServer_{DateTime.Now.ToString("yyyyMMddThhmmss")}.zip");
             if (!File.Exists(sourceFilePath)) return;
             try
@@ -132,7 +135,7 @@ namespace arduinoServer
         static void Main(string[] args)
         {
             ZipFiletoFile();
-            Trace.Listeners.Add(new TextWriterTraceListener(Environment.ExpandEnvironmentVariables(@"%APSTHOME%logs\arduinoServer.log"), "myListener"));
+            Trace.Listeners.Add(new TextWriterTraceListener(Environment.ExpandEnvironmentVariables(androidServer_FileName), "myListener"));
             Trace.AutoFlush = true;
             
             AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(CurrentDomain_UnhandledException);

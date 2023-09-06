@@ -235,6 +235,7 @@ namespace arduinoServer
 
         public Stream UpdateConfig()
         {
+            Properties.Settings.Default.Reload();
             Program.SerialManager.config.LoadConfigFile(System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Serialconfig.json"));
             return new MemoryStream(System.Text.UTF8Encoding.Default.GetBytes($"{{\"result\":\"OK\"}}"));
         }
