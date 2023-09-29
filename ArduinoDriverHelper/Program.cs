@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ArduinoDriverHelper.Properties;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Principal;
@@ -89,6 +90,13 @@ namespace ArduinoDriverHelper
             logIt(string.Format("called by arg: ({0})", args.Length));
             foreach (string s in args)
                 logIt(s);
+
+            if (!Settings.Default.bChangeDriver)
+            {
+                logIt("Not need Change CH340 Driver by config file");
+                return 0;
+            }
+
             if (!IsAdministrator())
             {
                 return restartByRDU();
