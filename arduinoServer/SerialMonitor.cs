@@ -356,20 +356,23 @@ namespace arduinoServer
         {
             List<string> l = new List<string>();
             {
-                Regex r = new Regex(@"^USB-SERIAL CH340 \(([COM\d]+)\)$");
+                Regex r = new Regex(@"^(.*?) \(([COM\d]+)\)$");
                 ManagementClass mc = new ManagementClass("Win32_PnPEntity");
                 ManagementObjectCollection mcCollection = mc.GetInstances();
                 foreach (ManagementObject mo in mcCollection)
                 {
                     string s = mo["Description"]?.ToString();
-                    if (string.Compare(s, "USB-SERIAL CH340") == 0)
+                    if (string.Compare(s, "USB-SERIAL CH340", true) == 0 ||
+                        string.Compare(s, "Arduino Micro", true) == 0 ||
+                        string.Compare(s, "USB Serial Port", true) == 0 ||
+                        string.Compare(s, "Arduino NANO Every", true) == 0)
                     {
                         //System.Diagnostics.Trace.WriteLine($"device: '{mo["Description"]}'");
                         String ss = mo["Caption"].ToString();
                         Match m = r.Match(ss);
                         if (m.Success)
                         {
-                            l.Add(m.Groups[1].Value);
+                            l.Add(m.Groups[2].Value);
                         }
                         //l.Add(mo["Caption"].ToString());
                     }
@@ -427,7 +430,11 @@ namespace arduinoServer
                                 String cmdled;
                                 while (queue_unsentcmd.TryDequeue(out cmdled))
                                 {
-                                    SendData(cmdled);
+                                    if (!SendData(cmdled))
+                                    {
+                                        logIt($"{cmdled} resend failed.");
+                                        break;
+                                    }
                                 }
                             }
                             else
@@ -495,7 +502,11 @@ namespace arduinoServer
                                 String cmdled;
                                 while (queue_unsentcmd.TryDequeue(out cmdled))
                                 {
-                                    SendData(cmdled);
+                                    if (!SendData(cmdled))
+                                    {
+                                        logIt($"{cmdled} resend failed.");
+                                        break;
+                                    }
                                 }
                             }
                             else

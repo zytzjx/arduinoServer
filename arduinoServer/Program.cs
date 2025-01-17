@@ -134,7 +134,13 @@ namespace arduinoServer
         [MTAThread]
         static void Main(string[] args)
         {
-            ZipFiletoFile();
+#if DEBUG
+           
+
+#else
+
+#endif
+            ///endtest
             Trace.Listeners.Add(new TextWriterTraceListener(Environment.ExpandEnvironmentVariables(androidServer_FileName), "myListener"));
             Trace.AutoFlush = true;
             

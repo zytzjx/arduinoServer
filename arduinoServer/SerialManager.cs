@@ -177,7 +177,10 @@ namespace arduinoServer
                 int i = 0;
                 foreach (FDUSB.USBDevice dev in devices)
                 {
-                    if (String.Compare(dev.Name, @"USB-SERIAL CH340", true) == 0)
+                    if (String.Compare(dev.Name, @"USB-SERIAL CH340", true) == 0||
+                        String.Compare(dev.Name, @"USB Composite Device", true) == 0 ||
+                        String.Compare(dev.Name, @"USB Serial Converter", true) == 0 ||
+                        String.Compare(dev.Name, @"Arduino NANO Every", true) == 0)
                     {
                         devs[i] = dev;
                         data[i++] = FDUSB.GetComFromInstanceID(dev.InstanceID);

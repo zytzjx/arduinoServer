@@ -1197,11 +1197,16 @@ namespace arduinoServer
         [DllImport("setupapi.dll", SetLastError = true)]
         internal static extern IntPtr SetupDiGetClassDevs(IntPtr ClassGuid, [MarshalAs(UnmanagedType.LPTStr)] string Enumerator, IntPtr hwndParent, uint Flags);
 
-        [DllImport("setupapi.dll")]
-        private static extern int CM_Get_Parent(out IntPtr pdnDevInst, int dnDevInst, int ulFlags);
+        [DllImport("CfgMgr32.dll")]
+        internal static extern int CM_Get_Parent(out IntPtr pdnDevInst, int dnDevInst, int ulFlags);
 
-        [DllImport("setupapi.dll", CharSet = CharSet.Auto)]
-        private static extern int CM_Get_Device_ID(IntPtr dnDevInst, IntPtr Buffer, int BufferLen, int ulFlags);
+        // CM_Get_DevNode_PropertyW( DEVINST dnDevInst, const DEVPROPKEY *PropertyKey, DEVPROPTYPE *PropertyType, PBYTE PropertyBuffer,
+        // PULONG PropertyBufferSize, ULONG ulFlags );
+        [DllImport("CfgMgr32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        internal static extern int CM_Get_DevNode_Property(uint dnDevInst, [In] ref DEVPROPKEY PropertyKey, out DEVPROP_TYPE PropertyType, byte[] PropertyBuffer, ref uint PropertyBufferSize, uint ulFlags = 0);
+
+        [DllImport("CfgMgr32.dll", CharSet = CharSet.Auto)]
+        internal static extern int CM_Get_Device_ID(IntPtr dnDevInst, IntPtr Buffer, int BufferLen, int ulFlags);
 
         [DllImport("setupapi.dll", CharSet = CharSet.Auto)]
         private static extern IntPtr SetupDiGetClassDevs(ref Guid ClassGuid, int Enumerator, IntPtr hwndParent, int Flags);
